@@ -1662,7 +1662,7 @@ body:not(.live) .live-only{display:none!important}
       else if (c === 'bad_utr') $('#payErr').textContent = 'That UPI reference number wasn’t accepted. Check the 12 digits and try again.';
       else if (c === 'bad_address') $('#payErr').textContent = 'Check the mobile number and pincode in your address, then try again.';
       else if (c === 'too_many_requests') $('#payErr').textContent = 'Too many attempts in a short time. Wait a few minutes, then place the order again.';
-      else $('#payErr').textContent = 'Your order couldn’t be saved. Check your connection and try again. Your payment details are still here.';
+      else $('#payErr').textContent = 'Your order couldn’t be saved. Check your connection and try again. Your payment details are still here. (' + (c || 'unknown') + ')';
     } finally {
       btn.disabled = false; btn.textContent = 'Place order';
     }
