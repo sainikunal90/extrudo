@@ -1,0 +1,1747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Extrudo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Instant 3D printing estimates and orders from Extrudo, Gurgaon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&display=swap">
+<style id="site-css">
+/* Layout: sticky header, 3D build plate beside a price panel; cart and checkout as two-column work views that stack on phones. */
+:root{
+  --bg:#ECEEF1; --surface:#FFFFFF; --surface-2:#F4F5F7; --stage:#DEE2E7;
+  --ink:#18202B; --muted:#5A6472; --line:#D3D8DF;
+  --accent:#2448D8; --accent-ink:#FFFFFF; --accent-soft:#E4E9FC;
+  --plate:#B8893A; --warn:#8A5200; --warn-bg:#FFF1D6; --ok:#1F7A45; --ok-bg:#E0F3E7; --danger:#B42318;
+  --owner:#FFF6E0; --owner-line:#E9C77A; --qr-bg:#FFFFFF; --qr-ink:#111418;
+  --font:"Archivo","Helvetica Neue",Arial,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151B; --surface:#1A2029; --surface-2:#222934; --stage:#0C1015;
+    --ink:#E8EBEF; --muted:#9AA4B1; --line:#2F3743;
+    --accent:#7F9CFF; --accent-ink:#0C1430; --accent-soft:#1E2950;
+    --plate:#C99A48; --warn:#F2B455; --warn-bg:#382810; --ok:#5CCB8A; --ok-bg:#12321F; --danger:#FF8A80;
+    --owner:#2A2312; --owner-line:#6B5520; --qr-bg:#FFFFFF; --qr-ink:#111418;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151B; --surface:#1A2029; --surface-2:#222934; --stage:#0C1015;
+  --ink:#E8EBEF; --muted:#9AA4B1; --line:#2F3743;
+  --accent:#7F9CFF; --accent-ink:#0C1430; --accent-soft:#1E2950;
+  --plate:#C99A48; --warn:#F2B455; --warn-bg:#382810; --ok:#5CCB8A; --ok-bg:#12321F; --danger:#FF8A80;
+  --owner:#2A2312; --owner-line:#6B5520; --qr-bg:#FFFFFF; --qr-ink:#111418;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+body.modal-open{overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+img{max-width:100%}
+h1,h2,h3{text-wrap:balance}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-inner{max-width:1180px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px 24px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:800;font-stretch:125%;font-size:1.18rem;letter-spacing:.005em}
+.brand svg{width:26px;height:26px;flex:none}
+.tabs{display:flex;gap:4px}
+.tabs a{padding:8px 12px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;white-space:nowrap;display:inline-flex;align-items:center}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 -2px 0 var(--accent)}
+.count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:.74rem;font-weight:800;font-variant-numeric:tabular-nums}
+.who{display:flex;align-items:center;gap:8px;position:relative}
+.guest-chip{font-size:.85rem;font-weight:600;color:var(--muted);padding:5px 10px;border:1px dashed var(--line);border-radius:999px;white-space:nowrap}
+.acct{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 12px 3px 3px;cursor:pointer;font-weight:600}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800}
+.menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:230px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:25}
+.menu-who{margin:0;padding:8px 10px 10px;border-bottom:1px solid var(--line);display:grid}
+.menu-who span{color:var(--muted);font-size:.86rem;overflow-wrap:anywhere}
+.menu-item{display:block;width:100%;text-align:left;padding:10px;border:0;background:none;border-radius:8px;text-decoration:none;color:var(--ink);cursor:pointer;font-weight:600}
+.menu-item:hover{background:var(--surface-2)}
+@media (max-width:719px){
+  .top-inner{grid-template-columns:1fr auto;grid-template-areas:"brand who" "nav nav";padding-bottom:6px}
+  .brand{grid-area:brand}.who{grid-area:who}
+  .tabs{grid-area:nav;overflow-x:auto;margin:0 -6px}
+}
+
+/* Owner bar */
+.owner{background:var(--owner);border-bottom:1px solid var(--owner-line)}
+.owner-inner{max-width:1180px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+.owner-text{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;min-width:0}
+.owner-text span{color:var(--muted);font-size:.9rem}
+.owner-actions{display:flex;gap:8px;flex-wrap:wrap}
+.owner-result{flex-basis:100%;background:var(--surface);border:1px solid var(--owner-line);border-radius:12px;padding:12px 14px;font-size:.94rem}
+.owner-result p{margin:0 0 8px}
+.owner-result ul{margin:0 0 10px;padding-left:18px}
+.owner-result li{font-variant-numeric:tabular-nums}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:10px;padding:11px 16px;min-height:44px;font-weight:650;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color .15s,border-color .15s}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.text{background:none;color:var(--accent);padding:8px 2px;min-height:auto}
+.btn.sm{padding:7px 12px;min-height:36px;font-size:.92rem}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+
+/* Estimate view */
+.hero{padding:30px 0 20px;max-width:48rem}
+.hero h1{margin:0 0 10px;font-size:clamp(2rem,5.6vw,3.5rem);line-height:1.02;font-weight:800;font-stretch:125%;letter-spacing:-.015em}
+.hero p{margin:0;color:var(--muted);font-size:1.06rem;max-width:38rem}
+.bench{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:16px;align-items:start}
+.stage{position:relative;height:clamp(340px,64vh,600px);background:var(--stage);border-radius:16px;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+@media (min-width:860px){.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}}
+@media (max-width:859px){.bench{grid-template-columns:1fr}.stage{height:clamp(280px,50vh,420px)}}
+.viewport{position:absolute;inset:0}
+.viewport canvas{display:block;width:100%;height:100%;cursor:grab}
+.viewport canvas:active{cursor:grabbing}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:24px;text-align:center;color:var(--muted)}
+.stage-top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+.stage-top>*{pointer-events:auto}
+.model-label{background:var(--surface);background:color-mix(in srgb,var(--surface) 86%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:8px 12px;border-radius:10px;min-width:0;max-width:62%}
+.model-label strong{display:block;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-label span{font-size:.86rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stage-bottom{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;pointer-events:none}
+.hint{margin:0;font-size:.82rem;color:var(--muted);background:var(--surface);background:color-mix(in srgb,var(--surface) 80%,transparent);padding:5px 9px;border-radius:8px}
+.zoom{display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+.zoom button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:1.25rem;line-height:1;cursor:pointer}
+.drop{position:absolute;inset:0;display:none;place-items:center;font-weight:700;font-size:1.1rem;color:var(--ink);background:color-mix(in srgb,var(--accent) 16%,transparent);border:2px dashed var(--accent);border-radius:16px}
+.stage.dragging .drop{display:grid}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 8px;min-width:0}
+.price{padding-bottom:16px;border-bottom:1px solid var(--line)}
+.total-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.total{font-size:2.7rem;line-height:1;font-weight:800;font-stretch:125%;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.total-note{color:var(--muted)}
+.facts{margin:10px 0 14px}
+.alert{border-radius:10px;padding:10px 12px;font-size:.92rem;margin:0 0 12px;background:var(--warn-bg);color:var(--warn)}
+.alert .link{background:none;border:0;padding:0;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer}
+.note{font-size:.88rem;color:var(--muted);margin:10px 0 0}
+fieldset{border:0;margin:0;padding:14px 0;border-bottom:1px solid var(--line);min-width:0}
+legend{font-weight:700;padding:0;margin:0 0 8px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(var(--min,104px),1fr));gap:6px}
+.seg label{position:relative;display:block}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{display:block;height:100%;padding:9px 8px;border:1px solid var(--line);border-radius:10px;text-align:center;font-weight:650;line-height:1.25}
+.seg span small{display:block;font-weight:400;color:var(--muted);font-size:.8rem;margin-top:2px}
+.seg input:checked + span{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.seg.tight{--min:56px}
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.swatch{position:relative;display:block}
+.swatch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.swatch span{display:block;width:34px;height:34px;border-radius:50%;background:var(--c);border:1px solid rgba(0,0,0,.18);box-shadow:inset 0 -6px 10px rgba(0,0,0,.14)}
+.swatch input:checked + span{outline:2px solid var(--accent);outline-offset:3px}
+.swatch input:focus-visible + span{outline:3px solid var(--accent);outline-offset:3px}
+.colour-name,.help{margin:8px 0 0;color:var(--muted);font-size:.86rem}
+.field{padding:14px 0;border-bottom:1px solid var(--line)}
+.field.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.field-head{display:flex;justify-content:space-between;align-items:baseline}
+.field-head label,.lbl{font-weight:700}
+.lbl small{display:block;font-weight:400;color:var(--muted);font-size:.84rem}
+output{font-weight:650;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accent)}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.stepper button{width:44px;height:44px;border:0;background:var(--surface-2);font-size:1.2rem;cursor:pointer}
+.stepper input{width:54px;height:44px;border:0;background:transparent;text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield}
+.stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.stepper.sm button{width:34px;height:34px;font-size:1rem}
+.stepper.sm span{min-width:34px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.switch{appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;flex:none;margin:0;transition:background-color .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.switch:checked{background:var(--accent)}
+.switch:checked::after{transform:translateX(20px)}
+.breakdown{padding:14px 0 10px}
+.breakdown summary{cursor:pointer;font-weight:700}
+.rows{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;margin:12px 0 0;font-variant-numeric:tabular-nums}
+.rows dt{color:var(--muted)}
+.rows dd{margin:0;text-align:right;white-space:nowrap}
+.rows .sum{font-weight:800;color:var(--ink);border-top:1px solid var(--line);padding-top:8px}
+.small{font-size:.82rem;color:var(--muted);margin:12px 0 0}
+
+.how{margin:48px 0 8px}
+.how h2,.view-head h2{margin:0 0 16px;font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.05;font-weight:800;font-stretch:125%;letter-spacing:-.01em}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:step}
+.steps li{counter-increment:step;padding-top:14px;border-top:3px solid var(--ink)}
+.steps li::before{content:counter(step);display:block;font-weight:800;font-stretch:125%;font-size:1.7rem;line-height:1;margin-bottom:8px;color:var(--plate)}
+.steps h3{margin:0 0 4px;font-size:1.06rem}
+.steps p{margin:0;color:var(--muted)}
+@media (max-width:719px){.steps{grid-template-columns:1fr}}
+
+/* Models view */
+.view-head{padding:30px 0 16px}
+.view-head h2{margin-bottom:6px}
+.view-head p{margin:0;color:var(--muted);max-width:42rem}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px 14px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+@media (max-width:420px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+.card{display:flex;flex-direction:column;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;padding:0}
+.card:hover{border-color:var(--muted)}
+.thumb{aspect-ratio:1/1;max-width:100%;background:var(--stage);display:grid;place-items:center}
+.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb-fallback{font-weight:800;font-stretch:125%;font-size:2.4rem;color:var(--muted)}
+.upload-card .thumb{background:transparent;border-bottom:1px dashed var(--line);color:var(--accent)}
+.upload-card .thumb svg{width:44px;height:44px}
+.card-body{padding:12px 12px 14px;display:grid;gap:2px}
+.card-name{font-weight:700;line-height:1.3}
+.card-meta{font-size:.84rem;color:var(--muted)}
+.card-price{font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+
+/* Cart and checkout */
+.split{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;align-items:start}
+@media (max-width:859px){.split{grid-template-columns:1fr}}
+.items{display:grid;gap:10px;min-width:0}
+.item{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:12px 14px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.item .thumb{width:76px;border-radius:10px;overflow:hidden}
+.item-name{font-weight:700;line-height:1.3}
+.item-spec{margin:2px 0 8px;color:var(--muted);font-size:.88rem}
+.item-ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.item-price{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.item-price small{display:block;font-weight:500;color:var(--muted);font-size:.8rem}
+@media (max-width:480px){.item{grid-template-columns:60px minmax(0,1fr)}.item .thumb{width:60px}.item-price{grid-column:2;text-align:left}}
+.summary{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px;min-width:0}
+@media (min-width:860px){.summary{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}}
+.summary h3{margin:0;font-size:1.1rem}
+.summary .rows{margin:0}
+.grand{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.grand span{font-weight:700}
+.grand strong{font-size:1.9rem;line-height:1;font-weight:800;font-stretch:125%;font-variant-numeric:tabular-nums}
+.eta{margin:0;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:.92rem}
+.eta strong{display:block}
+.mini{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:.92rem}
+.mini li{display:flex;justify-content:space-between;gap:10px}
+.mini li span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.progress{list-style:none;margin:6px 0 0;padding:0;display:flex;gap:8px;flex-wrap:wrap;counter-reset:pstep}
+.progress li{counter-increment:pstep;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:.92rem}
+.progress li::before{content:counter(pstep);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface-2);font-weight:800;font-size:.8rem}
+.progress li.on{color:var(--ink);border-color:var(--accent)}
+.progress li.on::before{background:var(--accent);color:var(--accent-ink)}
+.progress li.done::before{content:"✓";background:var(--ok-bg);color:var(--ok)}
+
+.co-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;min-width:0}
+.co-card h3{margin:0;font-size:1.2rem}
+.co-card .sub{margin:-8px 0 0;color:var(--muted)}
+.saved{display:grid;gap:8px}
+.addr{position:relative;display:block}
+.addr input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.addr span{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;line-height:1.4}
+.addr span small{display:block;color:var(--muted);font-size:.86rem}
+.addr input:checked + span{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.addr input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.addr-fields{display:grid;gap:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+.input label{display:block;font-weight:600;font-size:.92rem;margin-bottom:4px}
+.input .opt{font-weight:400;color:var(--muted)}
+.input input,.input select{width:100%;min-height:46px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.input input:focus,.input select:focus{border-color:var(--accent)}
+.check{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.err{margin:0;color:var(--danger);font-size:.9rem}
+.err:empty{display:none}
+.pay{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
+@media (max-width:520px){.pay{grid-template-columns:1fr;justify-items:start}}
+.qr{width:220px;max-width:100%;aspect-ratio:1/1;background:var(--qr-bg);border-radius:14px;padding:12px;border:1px solid var(--line)}
+.qr svg{display:block;width:100%;height:100%}
+.qr-fallback{display:grid;place-items:center;height:100%;text-align:center;color:#444;font-size:.86rem;padding:8px}
+.pay-info{display:grid;gap:8px;min-width:0}
+.pay-amt{font-size:2.2rem;line-height:1;font-weight:800;font-stretch:125%;font-variant-numeric:tabular-nums}
+.pay-to{margin:0;color:var(--muted)}
+.upi-id{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.upi-id code{font-family:var(--font);font-weight:700;padding:6px 10px;border-radius:8px;background:var(--surface-2);overflow-wrap:anywhere;user-select:all;-webkit-user-select:all}
+.pay-form{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+
+/* Orders */
+.qlist{display:grid;gap:12px;max-width:820px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px}
+.q-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.q-name{font-weight:700}
+.q-meta{font-size:.84rem;color:var(--muted)}
+.q-total{font-weight:800;font-stretch:125%;font-size:1.35rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.q-spec{margin:0;color:var(--muted);font-size:.92rem}
+.q-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:inline-block;font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.q details summary{cursor:pointer;font-weight:600;font-size:.92rem;color:var(--accent)}
+.q details .mini{margin-top:8px}
+.banner{background:var(--ok-bg);color:var(--ok);border-radius:12px;padding:14px 16px;margin:0 0 14px;max-width:820px}
+.banner strong{display:block;color:var(--ink)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:26px 20px;max-width:560px}
+.empty h3{margin:0 0 6px;font-size:1.15rem}
+.empty p{margin:0 0 14px;color:var(--muted)}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.foot{border-top:1px solid var(--line);margin-top:48px;padding-block:20px 28px;color:var(--muted);font-size:.88rem}
+.foot p{margin:0 0 4px}
+
+/* Mobile price bar */
+.mbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:none;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));transition:transform .2s}
+.mbar.off{transform:translateY(110%)}
+.mbar-total{font-weight:800;font-stretch:125%;font-size:1.4rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.mbar small{display:block;color:var(--muted);font-size:.8rem}
+@media (max-width:859px){
+  body.on-estimate .mbar{display:flex}
+  body.on-estimate .foot{padding-bottom:96px}
+  body.on-estimate .toast{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;z-index:50;background:rgba(10,14,20,.55);display:flex;align-items:flex-end;justify-content:center}
+.modal{position:relative;background:var(--surface);color:var(--ink);width:min(440px,100%);max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:26px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.modal-back{align-items:center;padding:20px}.modal{border-radius:18px;padding:30px 28px 24px}}
+.close-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;border-radius:10px;background:none;font-size:1.5rem;line-height:1;cursor:pointer;color:var(--muted)}
+.close-x:hover{background:var(--surface-2)}
+.modal .mark{width:44px;height:44px;margin-bottom:14px}
+.modal h2{margin:0 0 6px;font-size:1.55rem;line-height:1.1;font-weight:800;font-stretch:125%}
+.modal .sub{margin:0;color:var(--muted)}
+.stack{display:grid;gap:8px;margin-top:20px}
+.modal form{display:grid;gap:12px;margin-top:16px}
+.demo{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:.88rem}
+.alt{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-top:10px}
+.fine{margin:18px 0 0;font-size:.8rem;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:60;transform:translate(-50%,16px);opacity:0;pointer-events:none;display:flex;align-items:center;gap:14px;max-width:calc(100% - 32px);width:max-content;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{background:none;border:0;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="site">
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="#estimate" aria-label="Extrudo, go to estimate">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="19" width="24" height="6" rx="1.5" fill="var(--plate)"/><rect x="6" y="12" width="16" height="6" rx="1.5" fill="var(--ink)"/><rect x="10" y="5" width="8" height="6" rx="1.5" fill="var(--accent)"/></svg>
+      <span>Extrudo</span>
+    </a>
+    <nav class="tabs" aria-label="Main">
+      <a href="#estimate" data-view="estimate">Estimate</a>
+      <a href="#models" data-view="models">Models</a>
+      <a href="#cart" data-view="cart">Cart<span class="count" id="cartCount" hidden></span></a>
+      <a href="#orders" data-view="orders">Orders</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<div class="owner" id="ownerBar" hidden>
+  <div class="owner-inner">
+    <div class="owner-text"><strong>Owner view</strong><span id="ownerSynced"></span></div>
+    <div class="owner-actions">
+      <button class="btn primary sm" type="button" id="syncBtn">Update prices from sheet</button>
+      <a class="btn ghost sm" id="sheetLink" href="#" target="_blank" rel="noopener">Open sheet</a>
+    </div>
+    <div class="owner-result" id="ownerResult" role="status" hidden></div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section id="view-estimate" class="view">
+    <div class="hero">
+      <h1>Know the price before it prints.</h1>
+      <p id="heroText">Upload an STL or pick a ready model. Extrudo prints parts to order in Gurgaon, and estimates are free with no account needed.</p>
+    </div>
+
+    <div class="bench">
+      <div class="stage" id="stage">
+        <div class="viewport" id="viewport"></div>
+        <div class="stage-top">
+          <div class="model-label"><strong id="modelName">Loading model</strong><span id="modelDims"></span></div>
+          <button class="btn primary sm" id="uploadBtn" type="button">Upload STL</button>
+        </div>
+        <div class="stage-bottom">
+          <p class="hint" id="hint">Drag to turn the model.</p>
+          <div class="zoom">
+            <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+            <button type="button" id="zoomOut" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="drop" aria-hidden="true">Drop your STL to price it</div>
+      </div>
+
+      <div class="panel">
+        <div class="price" id="priceBlock">
+          <div class="total-row"><span class="total" id="total">₹0</span><span class="total-note" id="totalNote">for 1 piece</span></div>
+          <p class="facts" id="facts"></p>
+          <div id="alerts"></div>
+          <button class="btn primary wide" id="addBtn" type="button">Add to cart</button>
+          <p class="note" id="accountNote"></p>
+        </div>
+
+        <form id="opts" novalidate>
+          <fieldset><legend>Material</legend><div class="seg" id="matSeg"></div></fieldset>
+          <fieldset><legend>Quality</legend><div class="seg" id="qualSeg"></div></fieldset>
+          <fieldset><legend>Colour</legend><div class="swatches" id="swatches"></div><p class="colour-name" id="colourName"></p></fieldset>
+          <fieldset><legend>Infill</legend><div class="seg tight" id="infillSeg"></div><p class="help">Higher infill is stronger and heavier, and costs more.</p></fieldset>
+          <div class="field">
+            <div class="field-head"><label for="scale">Size</label><output id="scaleOut" for="scale">100%</output></div>
+            <input type="range" id="scale" name="scale" min="10" max="500" step="5" value="100">
+          </div>
+          <div class="field row">
+            <span class="lbl" id="qtyLbl">Quantity</span>
+            <div class="stepper" role="group" aria-labelledby="qtyLbl">
+              <button type="button" data-step="-1" aria-label="Fewer pieces">−</button>
+              <input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="100" value="1" aria-labelledby="qtyLbl">
+              <button type="button" data-step="1" aria-label="More pieces">+</button>
+            </div>
+          </div>
+          <div class="field row">
+            <label for="supports" class="lbl">Add supports<small>For overhangs steeper than 45°</small></label>
+            <input type="checkbox" id="supports" name="supports" class="switch">
+          </div>
+        </form>
+
+        <details class="breakdown">
+          <summary>Price breakdown</summary>
+          <dl class="rows" id="rows"></dl>
+          <p class="small" id="breakNote"></p>
+        </details>
+      </div>
+    </div>
+
+    <section class="how">
+      <h2>How ordering works</h2>
+      <ol class="steps">
+        <li><h3>Add your model</h3><p>Upload an STL or pick one from Models. Nothing is kept until you add it to your cart.</p></li>
+        <li><h3>Tune the print</h3><p>Material, quality, infill and size update the price as you change them.</p></li>
+        <li><h3>Check out once</h3><p>Add as many models as you like. Shipping is charged once for the whole cart, and you pay by UPI.</p></li>
+      </ol>
+    </section>
+  </section>
+
+  <section id="view-models" class="view" hidden>
+    <div class="view-head">
+      <h2>Ready-to-print models</h2>
+      <p id="modelsNote">Tap a model to price it your way.</p>
+    </div>
+    <div class="chips" id="chips" role="toolbar" aria-label="Filter models"></div>
+    <div class="grid" id="modelGrid"></div>
+  </section>
+
+  <section id="view-cart" class="view" hidden>
+    <div class="view-head">
+      <h2>Your cart</h2>
+      <p>Everything here ships together in one parcel, so you pay the setup fee and shipping once.</p>
+    </div>
+    <div id="cartBody"></div>
+  </section>
+
+  <section id="view-checkout" class="view" hidden>
+    <div class="view-head">
+      <h2>Checkout</h2>
+      <ol class="progress" id="progress"><li data-step="1">Delivery address</li><li data-step="2">Pay by UPI</li></ol>
+    </div>
+    <div class="split">
+      <div class="co-main">
+        <form id="addrForm" class="co-card" novalidate>
+          <h3>Where should we deliver?</h3>
+          <div class="saved" id="savedAddrs" hidden></div>
+          <div class="addr-fields" id="newAddr">
+            <div class="input"><label for="adName">Full name</label><input id="adName" autocomplete="name"></div>
+            <div class="input"><label for="adPhone">Mobile number</label><input id="adPhone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="10-digit number"></div>
+            <div class="input"><label for="adLine1">Flat, house and street</label><input id="adLine1" autocomplete="address-line1"></div>
+            <div class="input"><label for="adLine2">Area or landmark <span class="opt">(optional)</span></label><input id="adLine2" autocomplete="address-line2"></div>
+            <div class="two">
+              <div class="input"><label for="adCity">City</label><input id="adCity" autocomplete="address-level2"></div>
+              <div class="input"><label for="adPin">Pincode</label><input id="adPin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6 digits"></div>
+            </div>
+            <div class="input"><label for="adState">State</label><select id="adState" autocomplete="address-level1"></select></div>
+            <label class="check"><input type="checkbox" id="adSave" checked> Save this address to my account</label>
+          </div>
+          <p class="err" id="adErr" role="alert"></p>
+          <button class="btn primary wide" type="submit">Continue to payment</button>
+        </form>
+
+        <div class="co-card" id="payStep" hidden>
+          <h3>Pay by UPI</h3>
+          <p class="sub">Prepaid orders only. Scan the code with any UPI app and pay the exact amount shown.</p>
+          <div class="pay">
+            <div class="qr" id="qrBox"></div>
+            <div class="pay-info">
+              <div class="pay-amt" id="payAmt">₹0</div>
+              <p class="pay-to" id="payTo"></p>
+              <div class="upi-id"><code id="upiId"></code><button class="btn ghost sm" type="button" id="copyUpi">Copy UPI ID</button></div>
+              <a class="btn ghost sm" id="upiApp" href="#" hidden>Open UPI app</a>
+              <p class="help">Order <strong id="payRef"></strong> is added to the payment note.</p>
+            </div>
+          </div>
+          <form class="pay-form" id="payForm" novalidate>
+            <div class="input"><label for="utr">UPI reference number (UTR)</label><input id="utr" inputmode="numeric" maxlength="12" placeholder="12 digits" autocomplete="off"></div>
+            <p class="help">After paying, open the payment in your UPI app and copy its 12-digit reference number. We match it to your payment before printing.</p>
+            <p class="err" id="payErr" role="alert"></p>
+            <div class="row-btns"><button class="btn primary" type="submit">Place order</button><button class="btn text" type="button" id="backAddr">Change address</button></div>
+          </form>
+        </div>
+      </div>
+      <aside class="summary" id="coSummary" aria-label="Order summary"></aside>
+    </div>
+  </section>
+
+  <section id="view-orders" class="view" hidden>
+    <div class="view-head">
+      <h2>Your orders</h2>
+      <p>Orders you have placed, with their payment status and expected delivery.</p>
+    </div>
+    <div id="ordersBody"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p id="footText">Extrudo prints parts to order in Gurgaon, India.</p>
+    <p>This is a sample site. Accounts, carts and orders are stored only in this browser, and UPI payments are checked by hand.</p>
+  </div>
+</footer>
+
+<div class="mbar" id="mbar">
+  <div><div class="mbar-total" id="mTotal">₹0</div><small id="mNote">for 1 piece</small></div>
+  <button class="btn primary" type="button" id="mAdd">Add to cart</button>
+</div>
+
+<div class="modal-back" id="modalBack" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <button class="close-x" type="button" id="modalClose" aria-label="Close">×</button>
+
+    <div data-pane="welcome">
+      <svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="19" width="24" height="6" rx="1.5" fill="var(--plate)"/><rect x="6" y="12" width="16" height="6" rx="1.5" fill="var(--ink)"/><rect x="10" y="5" width="8" height="6" rx="1.5" fill="var(--accent)"/></svg>
+      <h2 id="welcomeTitle">Welcome to Extrudo</h2>
+      <p class="sub">Price any 3D print in seconds. Browse, estimate and fill your cart as a guest, then log in when you check out.</p>
+      <div class="stack">
+        <button class="btn primary" type="button" data-go="login">Log in</button>
+        <button class="btn ghost" type="button" data-go="signup">Create account</button>
+        <button class="btn text" type="button" data-guest>Continue as guest</button>
+      </div>
+    </div>
+
+    <div data-pane="login" hidden>
+      <h2 id="loginTitle">Log in</h2>
+      <p class="sub" data-reason></p>
+      <form id="loginForm" novalidate>
+        <div class="input"><label for="liEmail">Email</label><input id="liEmail" type="email" autocomplete="email" required></div>
+        <div class="input"><label for="liPass">Password</label><input id="liPass" type="password" autocomplete="current-password" required></div>
+        <p class="err" id="liErr" role="alert"></p>
+        <button class="btn primary" type="submit">Log in</button>
+      </form>
+      <div class="demo"><span>Demo account: demo@extrudo.in, password print123</span><button class="btn text" type="button" id="fillDemo">Use it</button></div>
+      <div class="alt"><button class="btn text" type="button" data-go="signup">Create an account</button><button class="btn text" type="button" data-guest>Continue as guest</button></div>
+    </div>
+
+    <div data-pane="signup" hidden>
+      <h2 id="signupTitle">Create your account</h2>
+      <p class="sub" data-reason></p>
+      <form id="signupForm" novalidate>
+        <div class="input"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" required></div>
+        <div class="input"><label for="suEmail">Email</label><input id="suEmail" type="email" autocomplete="email" required></div>
+        <div class="input"><label for="suPass">Password</label><input id="suPass" type="password" autocomplete="new-password" minlength="6" required></div>
+        <p class="err" id="suErr" role="alert"></p>
+        <button class="btn primary" type="submit">Create account</button>
+      </form>
+      <div class="alt"><button class="btn text" type="button" data-go="login">I already have an account</button><button class="btn text" type="button" data-guest>Continue as guest</button></div>
+    </div>
+
+    <p class="fine">This is a demo. Accounts, carts and orders are saved only in this browser.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileIn" accept=".stl" hidden>
+</div>
+<script type="application/json" id="price-data">{"rows":[["Material","PLA","2.2","₹ per gram","Price per gram of filament used"],["Material","PETG","2.6","₹ per gram",""],["Material","TPU","4","₹ per gram","Add or remove materials as you like"],["Material","ABS","3","₹ per gram",""],["Quality","Draft (0.28 mm)","0.9","multiplier","Applied to printer-time cost"],["Quality","Standard (0.20 mm)","1","multiplier","Baseline"],["Quality","Fine (0.12 mm)","1.5","multiplier",""],["Infill","10%","0.85","multiplier","Applied to material cost"],["Infill","20%","1","multiplier","Baseline"],["Infill","40%","1.25","multiplier",""],["Infill","60%","1.5","multiplier",""],["Infill","100%","2","multiplier",""],["Size","Small (under 5 cm)","0","₹ extra","Flat add-on per piece"],["Size","Medium (5 to 15 cm)","20","₹ extra",""],["Size","Large (15 to 25 cm)","60","₹ extra",""],["Printer","Machine time","50","₹ per hour",""],["Fees","Setup fee","40","₹ per order",""],["Fees","Minimum order","149","₹",""],["Fees","Supports","15","% extra material",""],["Discount","3+ pieces","5","% off",""],["Discount","5+ pieces","10","% off",""],["Discount","10+ pieces","15","% off",""],["Shipping","Box up to 15 x 12 x 10 cm","99","₹ per box","Billed as 0.5 kg. The site picks the smallest box that fits the whole cart"],["Shipping","Box up to 22 x 18 x 12 cm","169","₹ per box","Billed as 1 kg"],["Shipping","Box up to 30 x 20 x 15 cm","299","₹ per box","Billed as 2 kg. Bigger orders use more than one box"],["Shipping","Remote areas","100","₹ extra per order","J&K, Ladakh, North East, Sikkim, Andaman and Lakshadweep pincodes"],["Delivery","Printer hours per day","16","hours","Used to work out when an order is ready to ship"],["Delivery","Transit, Delhi NCR","2","days","Pincodes starting 110, 121, 122 and 201"],["Delivery","Transit, rest of India","5","days",""],["Delivery","Transit, remote areas","8","days",""]],"syncedAt":"2026-11-16T18:38:06.000Z","source":"Google Sheet 1cWLCh_2Ead388qhd6jEJeEdk5E3iSkTQjY0CxOa3Rac"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script id="site-js">
+(function () {
+  'use strict';
+
+  /* ---------- Page source, kept so the owner can republish with new prices ---------- */
+  const SHELL_HTML = document.getElementById('site').outerHTML;
+  const JS_SRC = (document.currentScript || document.getElementById('site-js')).textContent;
+  const CSS_SRC = document.getElementById('site-css').textContent;
+  const RESET_SRC = (function () {
+    const st = document.head && document.head.querySelector('style');
+    const t = st ? st.textContent : '';
+    return /safe-area-inset/.test(t) ? t : ':root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}';
+  })();
+  const PAGE_HEAD = '<title>Extrudo</title><meta name="claude:viewport-fit-sides" content="cover"><meta name="description" content="Instant 3D printing estimates and orders from Extrudo, Gurgaon."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&display=swap">';
+  const CDN_TAGS = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"><\/script>';
+
+  /* ---------- Business settings ---------- */
+  const SHEET_ID = '1cWLCh_2Ead388qhd6jEJeEdk5E3iSkTQjY0CxOa3Rac';
+  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit';
+  const UPI = { id: 'cosmicwave@ptyes', name: 'Kunal Saini' };
+  const PHYS = { shellMm: 1.2, warmup: 300, perLayer: 1.5, build: [256, 256, 256] };
+  const MAT_INFO = {
+    PLA: { density: 1.24, speed: 1, sub: 'Everyday parts' },
+    PETG: { density: 1.27, speed: 0.85, sub: 'Tough, heat-resistant' },
+    TPU: { density: 1.21, speed: 0.5, sub: 'Flexible, rubbery' },
+    ABS: { density: 1.04, speed: 0.9, sub: 'Strong, heat-resistant' },
+    ASA: { density: 1.07, speed: 0.9, sub: 'Outdoor, UV-resistant' },
+    NYLON: { density: 1.14, speed: 0.7, sub: 'Hard-wearing parts' }
+  };
+  const COLOURS = [
+    { id: 'cobalt',   name: 'Cobalt blue', hex: '#2F5BDB' },
+    { id: 'snow',     name: 'Snow white',  hex: '#EEEEE8' },
+    { id: 'graphite', name: 'Graphite',    hex: '#3B4049' },
+    { id: 'red',      name: 'Signal red',  hex: '#D23B2E' },
+    { id: 'fern',     name: 'Fern green',  hex: '#3D8C55' },
+    { id: 'sun',      name: 'Sunflower',   hex: '#E9B320' },
+    { id: 'clear',    name: 'Clear (PETG only)', hex: '#CFE6EC', css: 'linear-gradient(135deg,#f2fafc,#a8cdd8)', petgOnly: true, opacity: 0.55 }
+  ];
+  const STATES = ['Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'];
+
+  /* ---------- Helpers ---------- */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+  const inrFmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+  const inr = n => inrFmt.format(Math.round(n));
+  const signed = n => (n < 0 ? '−' + inr(-n) : inr(n));
+  const fmtMm = d => d >= 100 ? String(Math.round(d)) : String(+d.toFixed(1));
+  const fmtDims = ds => ds.map(fmtMm).join(' × ') + ' mm';
+  const fmtG = g => (g < 10 ? +g.toFixed(1) : Math.round(g)) + ' g';
+  const fmtNum = n => String(+(+n).toFixed(2));
+  function fmtTime(h) {
+    const m = Math.max(1, Math.round(h * 60));
+    if (m < 60) return m + ' min';
+    const hh = Math.floor(m / 60), mm = m % 60;
+    return hh + ' h' + (mm ? ' ' + mm + ' min' : '');
+  }
+  const addDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+  const fmtDay = d => d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const fmtDate = t => new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtStamp = t => new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  const HAS3 = typeof THREE !== 'undefined';
+  const uid = p => p + Date.now().toString(36).slice(-4).toUpperCase() + Math.random().toString(36).slice(2, 4).toUpperCase();
+
+  /* ---------- Storage (falls back to memory if blocked) ---------- */
+  const mem = {};
+  const store = {
+    get(k, fb) { try { const v = localStorage.getItem(k); if (v !== null) return JSON.parse(v); } catch (e) {} return (k in mem) ? mem[k] : fb; },
+    set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  const sess = {
+    get(k) { try { const v = sessionStorage.getItem(k); if (v !== null) return v; } catch (e) {} return mem['s:' + k] || null; },
+    set(k, v) { mem['s:' + k] = v; try { sessionStorage.setItem(k, v); } catch (e) {} },
+    del(k) { delete mem['s:' + k]; try { sessionStorage.removeItem(k); } catch (e) {} }
+  };
+  const K_USERS = 'extrudo.users', K_SESSION = 'extrudo.session', K_GUEST = 'extrudo.guest';
+
+  /* ---------- Prices from the owner's Google Sheet ---------- */
+  let PRICE_DATA = { rows: [], syncedAt: null };
+  try { PRICE_DATA = JSON.parse(document.getElementById('price-data').textContent) || PRICE_DATA; } catch (e) {}
+  const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : null; };
+
+  function normaliseRows(values) {
+    const s = x => (x == null ? '' : String(x)).trim();
+    let rows = (values || []).filter(r => Array.isArray(r));
+    if (rows.length && s(rows[0][0]).toLowerCase() === 'section') rows = rows.slice(1);
+    return rows.filter(r => s(r[0]) && s(r[1])).map(r => [s(r[0]), s(r[1]), s(r[2]), s(r[3]), s(r[4])]);
+  }
+
+  function buildPricing(rows) {
+    const P = { materials: {}, qualities: [], infills: [], sizes: [], boxes: [], remote: 100, machine: 50, setup: 40, minimum: 149, supportPct: 15, discounts: [], hoursPerDay: 16, transit: { ncr: 2, india: 5, remote: 8 }, skipped: [] };
+    rows.forEach(r => {
+      const sec = r[0].toLowerCase(), item = r[1], low = item.toLowerCase(), v = num(r[2]);
+      if (v === null) { P.skipped.push(item); return; }
+      if (sec === 'material') {
+        const key = item.toUpperCase().replace(/\s+/g, ' ');
+        const info = MAT_INFO[key] || { density: 1.2, speed: 0.85, sub: '' };
+        P.materials[key] = { key, label: item, perGram: v, density: info.density, speed: info.speed, sub: info.sub };
+      } else if (sec === 'quality') {
+        const m = low.match(/(\d*\.?\d+)\s*mm/);
+        const label = item.replace(/\s*\(.*?\)\s*/g, ' ').trim() || item;
+        P.qualities.push({ key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label, layer: m ? parseFloat(m[1]) : 0.2, mult: v });
+      } else if (sec === 'infill') {
+        const m = low.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (m) P.infills.push({ pct: parseFloat(m[1]), mult: v });
+      } else if (sec === 'size') {
+        const ns = (low.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+        P.sizes.push({ label: item, upTo: ns.length ? ns[ns.length - 1] : Infinity, add: v });
+      } else if (sec === 'printer') {
+        if (/machine|hour|time/.test(low)) P.machine = v;
+      } else if (sec === 'fees' || sec === 'fee') {
+        if (low.includes('setup')) P.setup = v; else if (low.includes('minimum')) P.minimum = v; else if (low.includes('support')) P.supportPct = v;
+      } else if (sec === 'discount') {
+        const m = low.match(/(\d+)/); if (m) P.discounts.push({ min: +m[1], pct: v });
+      } else if (sec === 'shipping') {
+        const d = low.match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/);
+        if (d) P.boxes.push({ label: item, cm: [+d[1], +d[2], +d[3]], dims: [+d[1], +d[2], +d[3]].map(x => x * 10).sort((a, b) => b - a), price: v });
+        else if (low.includes('remote')) P.remote = v;
+      } else if (sec === 'delivery') {
+        if (low.includes('hour')) P.hoursPerDay = Math.max(1, v);
+        else if (/ncr|delhi/.test(low)) P.transit.ncr = v;
+        else if (low.includes('remote')) P.transit.remote = v;
+        else if (/transit|india/.test(low)) P.transit.india = v;
+      }
+    });
+    if (!Object.keys(P.materials).length) P.materials.PLA = { key: 'PLA', label: 'PLA', perGram: 2.2, density: 1.24, speed: 1, sub: 'Everyday parts' };
+    if (!P.qualities.length) P.qualities.push({ key: 'standard', label: 'Standard', layer: 0.2, mult: 1 });
+    if (!P.infills.length) P.infills.push({ pct: 20, mult: 1 });
+    P.infills.sort((a, b) => a.pct - b.pct);
+    P.sizes.sort((a, b) => a.upTo - b.upTo);
+    P.discounts.sort((a, b) => b.min - a.min);
+    P.boxes.sort((a, b) => a.dims[0] * a.dims[1] * a.dims[2] - b.dims[0] * b.dims[1] * b.dims[2]);
+    P.baseInfill = (P.infills.find(i => i.mult === 1) || P.infills.find(i => i.pct === 20) || P.infills[0]).pct;
+    P.baseQuality = P.qualities.find(q => q.mult === 1) || P.qualities[Math.floor(P.qualities.length / 2)];
+    P.firstMat = P.materials.PLA ? 'PLA' : Object.keys(P.materials)[0];
+    return P;
+  }
+  const P = buildPricing(normaliseRows(PRICE_DATA.rows));
+  const DEFAULT_OPTS = { material: P.firstMat, quality: P.baseQuality.key, colour: 'cobalt', infill: P.baseInfill, scale: 100, qty: 1, supports: false };
+
+  /* ---------- State ---------- */
+  const state = { user: null, view: '', model: null, est: null, opts: Object.assign({}, DEFAULT_OPTS), filter: 'All', co: { step: 1, addrId: null, pin: '', ref: null, address: null }, justPlaced: null };
+  let pendingAction = null, booted = false, demoReady = Promise.resolve();
+
+  /* ---------- Geometry ---------- */
+  function lathe(pts, segs) { return new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), segs); }
+  function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach((p, i) => i ? s.lineTo(p[0], p[1]) : s.moveTo(p[0], p[1])); return s; }
+  function roundRect(s, x, y, w, h, r) {
+    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+    s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  }
+  function buildGear() {
+    const teeth = 20, rRoot = 17.5, rTip = 22, step = Math.PI * 2 / teeth, s = new THREE.Shape();
+    for (let i = 0; i < teeth; i++) {
+      const a = i * step;
+      [[rRoot, a - step * 0.3], [rTip, a - step * 0.14], [rTip, a + step * 0.14], [rRoot, a + step * 0.3]].forEach((p, j) => {
+        const x = p[0] * Math.cos(p[1]), y = p[0] * Math.sin(p[1]);
+        (i === 0 && j === 0) ? s.moveTo(x, y) : s.lineTo(x, y);
+      });
+    }
+    const hole = new THREE.Path(); hole.absarc(0, 0, 4, 0, Math.PI * 2, true); s.holes.push(hole);
+    const g = new THREE.ExtrudeGeometry(s, { depth: 8, bevelEnabled: false, curveSegments: 24 });
+    g.rotateX(-Math.PI / 2); return g;
+  }
+  function buildStand() {
+    const s = shapeFrom([[0, 0], [85, 0], [85, 6], [64, 6], [80, 92], [73, 94], [56, 12], [14, 12], [14, 24], [7, 24], [7, 12], [0, 12]]);
+    return new THREE.ExtrudeGeometry(s, { depth: 70, bevelEnabled: false });
+  }
+  function buildTag() {
+    const s = new THREE.Shape(); roundRect(s, -25, -12, 50, 24, 6);
+    const h = new THREE.Path(); h.absarc(-17, 0, 3.2, 0, Math.PI * 2, true); s.holes.push(h);
+    const g = new THREE.ExtrudeGeometry(s, { depth: 3, bevelEnabled: false, curveSegments: 16 });
+    g.rotateX(-Math.PI / 2); return g;
+  }
+  function buildKnot() { const g = new THREE.TorusKnotGeometry(28, 7.5, 220, 24); g.rotateX(-Math.PI / 2); return g; }
+
+  const SAMPLES = [
+    { id: 'knot',    name: 'Knot sculpture',      cat: 'Decor', colour: 'cobalt',   build: buildKnot },
+    { id: 'planter', name: 'Tapered planter',     cat: 'Home',  colour: 'fern',     build: () => lathe([[0, 0], [34, 0], [45, 78], [48, 78], [48, 86], [43.5, 86], [31.2, 4], [0, 4]], 72) },
+    { id: 'pencup',  name: 'Hex pen cup',         cat: 'Desk',  colour: 'graphite', flat: true, build: () => lathe([[0, 0], [40, 0], [40, 95], [37.5, 95], [37.5, 3], [0, 3]], 6) },
+    { id: 'stand',   name: 'Phone stand',         cat: 'Desk',  colour: 'sun',      build: buildStand },
+    { id: 'gear',    name: 'Spur gear, 20 teeth', cat: 'Parts', colour: 'red',      build: buildGear },
+    { id: 'tag',     name: 'Keychain tag',        cat: 'Home',  colour: 'snow',     build: buildTag },
+    { id: 'cube',    name: 'Calibration cube',    cat: 'Parts', colour: 'graphite', build: () => new THREE.BoxGeometry(20, 20, 20) }
+  ];
+
+  function measure(geo) {
+    const p = geo.attributes.position.array, idx = geo.index ? geo.index.array : null;
+    const n = idx ? idx.length / 3 : p.length / 9;
+    let vol = 0, area = 0;
+    for (let t = 0; t < n; t++) {
+      const i0 = idx ? idx[3 * t] * 3 : 9 * t, i1 = idx ? idx[3 * t + 1] * 3 : 9 * t + 3, i2 = idx ? idx[3 * t + 2] * 3 : 9 * t + 6;
+      const ax = p[i0], ay = p[i0 + 1], az = p[i0 + 2], bx = p[i1], by = p[i1 + 1], bz = p[i1 + 2], cx = p[i2], cy = p[i2 + 1], cz = p[i2 + 2];
+      vol += (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6;
+      const ux = bx - ax, uy = by - ay, uz = bz - az, vx = cx - ax, vy = cy - ay, vz = cz - az;
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      area += Math.sqrt(nx * nx + ny * ny + nz * nz) / 2;
+    }
+    const size = new THREE.Vector3(); geo.boundingBox.getSize(size);
+    const dims = [size.x, size.z, size.y];
+    vol = Math.abs(vol);
+    const leaky = !isFinite(vol) || vol < dims[0] * dims[1] * dims[2] * 0.01;
+    if (leaky) vol = Math.max(isFinite(vol) ? vol : 0, area * PHYS.shellMm);
+    return { vol, area, dims, tris: n, leaky };
+  }
+  function prepare(geo, flat) {
+    if (flat) { if (geo.index) geo = geo.toNonIndexed(); geo.computeVertexNormals(); }
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox, c = new THREE.Vector3(); bb.getCenter(c);
+    geo.translate(-c.x, -bb.min.y, -c.z);
+    geo.computeBoundingBox(); geo.computeBoundingSphere();
+    return Object.assign({ geo }, measure(geo));
+  }
+  function parseSTL(buf) {
+    const dv = new DataView(buf);
+    if (buf.byteLength >= 84) {
+      const n = dv.getUint32(80, true), expected = 84 + n * 50;
+      const head = new TextDecoder().decode(new Uint8Array(buf, 0, 5)).toLowerCase();
+      if (n > 0 && (expected === buf.byteLength || (head !== 'solid' && expected <= buf.byteLength))) {
+        const out = new Float32Array(n * 9);
+        for (let i = 0; i < n; i++) {
+          let o = 84 + i * 50 + 12;
+          for (let j = 0; j < 9; j++) { out[i * 9 + j] = dv.getFloat32(o, true); o += 4; }
+        }
+        return out;
+      }
+    }
+    const text = new TextDecoder().decode(new Uint8Array(buf));
+    const re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g, v = [];
+    let m;
+    while ((m = re.exec(text))) v.push(+m[1], +m[2], +m[3]);
+    if (!v.length || v.length % 9 || v.some(x => !isFinite(x))) throw new Error('Unreadable STL');
+    return new Float32Array(v);
+  }
+
+  /* ---------- Pricing ---------- */
+  const matOf = k => P.materials[k] || P.materials[P.firstMat];
+  const qualOf = k => P.qualities.find(q => q.key === k) || P.baseQuality;
+  const infillOf = pct => P.infills.find(i => i.pct === pct) || P.infills.find(i => i.pct === P.baseInfill) || P.infills[0];
+
+  function physical(base, o, infillPct, layer) {
+    const s = o.scale / 100, V = base.vol * s * s * s, A = base.area * s * s;
+    const shell = Math.min(V, A * PHYS.shellMm);
+    let mv = shell + Math.max(0, V - shell) * (infillPct / 100);
+    if (o.supports) mv *= 1 + P.supportPct / 100;
+    const mat = matOf(o.material);
+    const layers = Math.ceil(base.dims[2] * s / layer);
+    return { grams: mv / 1000 * mat.density, hours: (mv / (layer * 32.5 * mat.speed) + layers * PHYS.perLayer + PHYS.warmup) / 3600 };
+  }
+
+  function priceItem(base, o) {
+    const s = o.scale / 100, dims = base.dims.map(d => d * s);
+    const mat = matOf(o.material), q = qualOf(o.quality), inf = infillOf(o.infill), qty = o.qty;
+    const actual = physical(base, o, inf.pct, q.layer);
+    const matBaseline = physical(base, o, P.baseInfill, P.baseQuality.layer);
+    const timeBaseline = physical(base, o, inf.pct, P.baseQuality.layer);
+    const maxCm = Math.max.apply(null, dims) / 10;
+    const size = P.sizes.find(z => maxCm <= z.upTo) || P.sizes[P.sizes.length - 1] || null;
+    const matBase = Math.round(matBaseline.grams * mat.perGram * qty);
+    const matAdj = Math.round(matBaseline.grams * mat.perGram * (inf.mult - 1) * qty);
+    const machBase = Math.round(timeBaseline.hours * P.machine * qty);
+    const machAdj = Math.round(timeBaseline.hours * P.machine * (q.mult - 1) * qty);
+    const sizeAdd = size ? Math.round(size.add * qty) : 0;
+    const gross = matBase + matAdj + machBase + machAdj + sizeAdd;
+    const disc = P.discounts.find(d => qty >= d.min) || null;
+    const discount = disc ? Math.round(gross * disc.pct / 100) : 0;
+    const total = gross - discount;
+    const fitScale = Math.floor(Math.min.apply(null, base.dims.map((d, i) => PHYS.build[i] / d)) * 100 / 5) * 5;
+    return {
+      dims, qty, mat, q, inf, size, disc, grams: actual.grams, hours: actual.hours,
+      baseGrams: matBaseline.grams, baseHours: timeBaseline.hours,
+      matBase, matAdj, machBase, machAdj, sizeAdd, discount, total,
+      tooBig: dims.some((d, i) => d > PHYS.build[i]), fitScale: clamp(fitScale, 10, 500),
+      tiny: Math.max.apply(null, dims) < 3
+    };
+  }
+
+  function regionOf(pin) {
+    if (!/^[1-9]\d{5}$/.test(pin || '')) return null;
+    if (/^(18|19|78|79|737|744|6825)/.test(pin)) return 'remote';
+    if (/^(110|121|122|201)/.test(pin)) return 'ncr';
+    return 'india';
+  }
+
+  function shippingFor(lines, pin) {
+    if (!lines.length || !P.boxes.length) return null;
+    const pad = 20, pieces = [];
+    let vol = 0;
+    lines.forEach(l => {
+      const d = l.pr.dims.map(x => x + pad).sort((a, b) => b - a);
+      pieces.push(d);
+      vol += d[0] * d[1] * d[2] * l.pr.qty;
+    });
+    const boxVol = b => b.dims[0] * b.dims[1] * b.dims[2];
+    const fits = (d, b) => d[0] <= b.dims[0] && d[1] <= b.dims[1] && d[2] <= b.dims[2];
+    let box = P.boxes.find(b => pieces.every(d => fits(d, b)) && vol <= boxVol(b) * 0.8);
+    let count = 1, oversize = false;
+    if (!box) {
+      box = P.boxes[P.boxes.length - 1];
+      count = Math.max(1, Math.ceil(vol / (boxVol(box) * 0.8)));
+      oversize = pieces.some(d => !fits(d, box));
+    }
+    const region = regionOf(pin);
+    const remote = region === 'remote' ? P.remote : 0;
+    return { box, count, boxAmount: box.price * count, remote, region, amount: box.price * count + remote, oversize };
+  }
+
+  function cartTotals(items, pin) {
+    const lines = items.map(it => ({ it, pr: priceItem(it.base, it.opts) }));
+    const subtotal = sum(lines, l => l.pr.total);
+    const setup = lines.length ? P.setup : 0;
+    const topUp = lines.length && subtotal + setup < P.minimum ? P.minimum - subtotal - setup : 0;
+    const ship = shippingFor(lines, pin);
+    const hours = sum(lines, l => l.pr.hours * l.pr.qty);
+    const readyDays = lines.length ? Math.ceil(hours / P.hoursPerDay) + 1 : 0;
+    const region = regionOf(pin);
+    const transit = region ? P.transit[region] : null;
+    const total = subtotal + setup + topUp + (ship ? ship.amount : 0);
+    return { lines, subtotal, setup, topUp, ship, hours, readyDays, region, transit, total, arrive: transit != null ? addDays(readyDays + transit) : null };
+  }
+
+  /* ---------- 3D viewer ---------- */
+  function addLights(sc) {
+    sc.add(new THREE.HemisphereLight(0xffffff, 0x8c7b66, 0.85));
+    const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(1.2, 2, 1.6); sc.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.3); fill.position.set(-1.6, 0.6, -1); sc.add(fill);
+  }
+  const viewer = (function () {
+    let renderer, scene, camera, group, mesh, plate, el, ok = false, visible = true, ownsGeo = false;
+    let yaw = 0.7, pitch = 0.5, zoom = 1, scale = 1, lastTouch = -1e9, gridCb = null;
+    let base = { r: 50, h: 50, foot: 60 };
+    const pts = new Map(); let pinch0 = 0, zoom0 = 1;
+    const spread = () => { const a = Array.from(pts.values()); return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+
+    function init(container) {
+      el = container;
+      if (!HAS3) return false;
+      try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { return false; }
+      if (!renderer.getContext()) return false;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x000000, 0);
+      el.appendChild(renderer.domElement);
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(30, 1, 0.5, 20000);
+      addLights(scene);
+      group = new THREE.Group(); scene.add(group);
+      const cv = renderer.domElement;
+      cv.addEventListener('pointerdown', e => {
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+        lastTouch = performance.now();
+        if (pts.size === 2) { pinch0 = spread(); zoom0 = zoom; }
+      });
+      cv.addEventListener('pointermove', e => {
+        const p = pts.get(e.pointerId); if (!p) return;
+        const dx = e.clientX - p.x, dy = e.clientY - p.y;
+        p.x = e.clientX; p.y = e.clientY; lastTouch = performance.now();
+        if (pts.size === 1) {
+          yaw += dx * 0.012;
+          if (e.pointerType === 'mouse') pitch = clamp(pitch + dy * 0.006, 0.08, 1.25);
+        } else if (pts.size === 2 && pinch0) {
+          zoom = clamp(zoom0 * spread() / pinch0, 0.5, 3);
+        }
+      });
+      const end = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; };
+      cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end); cv.addEventListener('lostpointercapture', end);
+      cv.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomBy(Math.exp(-e.deltaY * 0.01)); }, { passive: false });
+      if ('ResizeObserver' in window) new ResizeObserver(resize).observe(el); else window.addEventListener('resize', resize);
+      resize(); ok = true; requestAnimationFrame(loop);
+      return true;
+    }
+    function resize() {
+      if (!renderer) return;
+      const w = el.clientWidth || 1, h = el.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    function place() {
+      const r = base.r * scale, h = base.h * scale;
+      let d = r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08;
+      if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.45);
+      d /= zoom;
+      camera.position.set(0, h * 0.45 + d * Math.sin(pitch), d * Math.cos(pitch));
+      camera.near = Math.max(0.1, d / 100); camera.far = d * 20;
+      camera.lookAt(0, h * 0.45, 0); camera.updateProjectionMatrix();
+    }
+    function loop() {
+      requestAnimationFrame(loop);
+      if (!ok || !visible || document.hidden || !mesh) return;
+      if (!reduceMotion && performance.now() - lastTouch > 3500) yaw += 0.0035;
+      group.rotation.y = yaw;
+      place();
+      renderer.render(scene, camera);
+    }
+    function buildPlate(foot) {
+      if (plate) { group.remove(plate); plate.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+      let cell = 10, size = Math.max(foot * 1.8, 60);
+      while (size / cell > 36) cell *= 2;
+      size = Math.ceil(size / cell) * cell;
+      const t = Math.max(1.5, size * 0.025);
+      plate = new THREE.Group();
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(size, t, size), new THREE.MeshStandardMaterial({ color: 0xb8893a, roughness: 0.8, metalness: 0.3 }));
+      slab.position.y = -t / 2 - 0.05;
+      const grid = new THREE.GridHelper(size, size / cell, 0x5a3f12, 0x5a3f12);
+      grid.material.transparent = true; grid.material.opacity = 0.45; grid.position.y = 0.02;
+      plate.add(slab, grid); group.add(plate);
+      if (gridCb) gridCb(cell);
+    }
+    function setModel(geo, owns, colour, s) {
+      if (!ok) return;
+      if (mesh) { group.remove(mesh); if (ownsGeo) mesh.geometry.dispose(); mesh.material.dispose(); }
+      ownsGeo = owns;
+      mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: colour.hex, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide, transparent: !!colour.opacity, opacity: colour.opacity || 1 }));
+      group.add(mesh);
+      const size = new THREE.Vector3(); geo.boundingBox.getSize(size);
+      base = { r: size.length() / 2, h: size.y, foot: Math.max(size.x, size.z) };
+      zoom = 1; setScale(s);
+    }
+    function setScale(s) { scale = s; if (!mesh) return; mesh.scale.setScalar(s); buildPlate(base.foot * s); }
+    function setColour(c) {
+      if (!mesh) return;
+      mesh.material.color.set(c.hex); mesh.material.transparent = !!c.opacity; mesh.material.opacity = c.opacity || 1; mesh.material.needsUpdate = true;
+    }
+    function zoomBy(f) { zoom = clamp(zoom * f, 0.5, 3); lastTouch = performance.now(); }
+    return {
+      init, setModel, setScale, setColour, zoomBy,
+      setVisible(v) { visible = v; if (v) resize(); },
+      onGrid(cb) { gridCb = cb; }
+    };
+  })();
+
+  /* Small renders for the gallery and cart */
+  const renderThumb = (function () {
+    let r, sc, cam;
+    function get() {
+      if (r !== undefined) return r;
+      r = null;
+      if (!HAS3) return r;
+      try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); if (!r.getContext()) r = null; } catch (e) { r = null; }
+      if (r) { r.setPixelRatio(1); r.setClearColor(0x000000, 0); sc = new THREE.Scene(); addLights(sc); cam = new THREE.PerspectiveCamera(30, 1, 0.5, 20000); }
+      return r;
+    }
+    return function (geo, hex, px) {
+      const R = get(); if (!R || !geo) return null;
+      R.setSize(px, px, false);
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide }));
+      m.rotation.y = 0.65; sc.add(m);
+      const sz = new THREE.Vector3(); geo.boundingBox.getSize(sz);
+      const d = (sz.length() / 2) / Math.sin(THREE.MathUtils.degToRad(15)) * 1.02, p = 0.5;
+      cam.position.set(0, sz.y * 0.5 + d * Math.sin(p), d * Math.cos(p));
+      cam.near = d / 100; cam.far = d * 10; cam.lookAt(0, sz.y * 0.5, 0); cam.updateProjectionMatrix();
+      R.render(sc, cam);
+      let url = null; try { url = R.domElement.toDataURL('image/png'); } catch (e) {}
+      sc.remove(m); m.material.dispose();
+      return url;
+    };
+  })();
+
+  /* ---------- Estimator UI ---------- */
+  const colourById = id => COLOURS.find(c => c.id === id) || COLOURS[0];
+  const currentColour = () => colourById(state.opts.colour);
+  const matKeys = () => Object.keys(P.materials);
+  const matList = () => { const k = matKeys().map(x => P.materials[x].label); return k.length > 1 ? k.slice(0, -1).join(', ') + ' and ' + k[k.length - 1] : k[0]; };
+
+  function buildOptions() {
+    $('#matSeg').innerHTML = matKeys().map(k => { const m = P.materials[k]; return `<label><input type="radio" name="material" value="${esc(k)}"><span>${esc(m.label)}${m.sub ? `<small>${esc(m.sub)}</small>` : ''}</span></label>`; }).join('');
+    $('#qualSeg').innerHTML = P.qualities.map(q => `<label><input type="radio" name="quality" value="${esc(q.key)}"><span>${esc(q.label)}<small>${q.layer.toFixed(2)} mm layers</small></span></label>`).join('');
+    $('#infillSeg').innerHTML = P.infills.map(i => `<label><input type="radio" name="infill" value="${i.pct}"><span>${fmtNum(i.pct)}%</span></label>`).join('');
+    $('#heroText').textContent = `Upload an STL or pick a ready model. Extrudo prints ${matList()} parts to order in Gurgaon, and estimates are free with no account needed.`;
+    $('#footText').textContent = `Extrudo prints ${matList()} parts to order in Gurgaon, India.`;
+    $('#modelsNote').textContent = `Tap a model to price it your way. Prices shown are for ${P.materials[P.firstMat].label} at ${P.baseQuality.label.toLowerCase()} quality with ${fmtNum(P.baseInfill)}% infill, before setup and shipping.`;
+  }
+  function renderSwatches() {
+    const list = COLOURS.filter(c => !c.petgOnly || state.opts.material === 'PETG');
+    if (!list.some(c => c.id === state.opts.colour)) state.opts.colour = list[0].id;
+    $('#swatches').innerHTML = list.map(c => `<label class="swatch" title="${esc(c.name)}"><input type="radio" name="colour" value="${c.id}" aria-label="${esc(c.name)}"${c.id === state.opts.colour ? ' checked' : ''}><span style="--c:${c.css || c.hex}"></span></label>`).join('');
+    $('#colourName').textContent = currentColour().name;
+  }
+  function syncOptions() {
+    const o = state.opts;
+    if (!P.materials[o.material]) o.material = P.firstMat;
+    if (!P.qualities.some(q => q.key === o.quality)) o.quality = P.baseQuality.key;
+    if (!P.infills.some(i => i.pct === o.infill)) o.infill = P.baseInfill;
+    $$('#opts input[name=material]').forEach(i => { i.checked = i.value === o.material; });
+    $$('#opts input[name=quality]').forEach(i => { i.checked = i.value === o.quality; });
+    $$('#opts input[name=infill]').forEach(i => { i.checked = +i.value === o.infill; });
+    renderSwatches();
+    $('#scale').value = o.scale; $('#scaleOut').textContent = o.scale + '%';
+    $('#qty').value = o.qty; $('#supports').checked = o.supports;
+  }
+
+  function updateEstimate() {
+    const m = state.model; if (!m) return;
+    const o = state.opts, e = state.est = priceItem(m, o);
+    $('#modelName').textContent = m.name;
+    $('#modelDims').textContent = fmtDims(e.dims);
+    $('#total').textContent = inr(e.total);
+    $('#totalNote').textContent = o.qty > 1 ? `for ${o.qty} pieces, ${inr(e.total / o.qty)} each` : 'for 1 piece';
+    const ready = Math.ceil(e.hours * o.qty / P.hoursPerDay) + 1;
+    $('#facts').textContent = `About ${fmtG(e.grams)} of ${e.mat.label} and ${fmtTime(e.hours)} on the printer${o.qty > 1 ? ' per piece' : ''}. Ready to ship in about ${ready} days.`;
+
+    const alerts = [];
+    if (e.tooBig) alerts.push(`<div class="alert">At this size it’s larger than our 256 mm build plate. <button type="button" class="link" data-fit="${e.fitScale}">Fit to plate (${e.fitScale}%)</button></div>`);
+    if (e.tiny) alerts.push('<div class="alert">This model is under 3 mm across. If it was exported in metres or inches, increase the size.</div>');
+    if (m.leaky) alerts.push('<div class="alert">This mesh may have holes, so weight and price could be off. We’ll check it when we slice the file.</div>');
+    $('#alerts').innerHTML = alerts.join('');
+    $('#addBtn').disabled = e.tooBig; $('#mAdd').disabled = e.tooBig;
+
+    const rows = [[`${e.mat.label}, ${fmtG(e.baseGrams * o.qty)} at ₹${fmtNum(e.mat.perGram)}/g${e.inf.pct !== P.baseInfill ? ` (at ${fmtNum(P.baseInfill)}% infill)` : ''}`, e.matBase]];
+    if (e.inf.mult !== 1) rows.push([`${fmtNum(e.inf.pct)}% infill, ×${fmtNum(e.inf.mult)}`, e.matAdj]);
+    rows.push([`Printer time, ${fmtTime(e.baseHours * o.qty)} at ₹${fmtNum(P.machine)}/h${e.q.key !== P.baseQuality.key ? ` (${P.baseQuality.label.toLowerCase()} quality)` : ''}`, e.machBase]);
+    if (e.q.mult !== 1) rows.push([`${e.q.label} quality, ×${fmtNum(e.q.mult)}`, e.machAdj]);
+    if (e.sizeAdd) rows.push([`${e.size.label}${o.qty > 1 ? `, ₹${fmtNum(e.size.add)} each` : ''}`, e.sizeAdd]);
+    if (e.discount) rows.push([`${e.disc.min}+ pieces, ${fmtNum(e.disc.pct)}% off`, -e.discount]);
+    $('#rows').innerHTML = rows.map(r => `<dt>${esc(r[0])}</dt><dd>${signed(r[1])}</dd>`).join('') + `<dt class="sum">This item</dt><dd class="sum">${inr(e.total)}</dd>`;
+    $('#breakNote').textContent = `The setup fee (${inr(P.setup)} per order) and shipping are added once at checkout. Orders under ${inr(P.minimum)} are rounded up to ${inr(P.minimum)}. We confirm the final price after slicing your file.`;
+
+    $('#mTotal').textContent = inr(e.total);
+    $('#mNote').textContent = `${e.mat.label}, ${o.qty} ${o.qty > 1 ? 'pieces' : 'piece'}, before shipping`;
+  }
+
+  function loadSample(id, opts) {
+    const s = SAMPLES.find(x => x.id === id); if (!s || !s.geo) return;
+    state.model = { name: s.name, source: 'sample', sampleId: s.id, geo: s.geo, vol: s.vol, area: s.area, dims: s.dims, leaky: false };
+    if (opts) Object.assign(state.opts, opts); else { state.opts.colour = s.colour; state.opts.scale = 100; }
+    syncOptions();
+    viewer.setModel(s.geo, false, currentColour(), state.opts.scale / 100);
+    updateEstimate();
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    if (!/\.stl$/i.test(file.name)) { toast('Choose an .stl file. Other formats aren’t supported yet.'); return; }
+    if (file.size > 60 * 1024 * 1024) { toast('That file is over 60 MB. Simplify the mesh and try again.'); return; }
+    if (!HAS3) { toast('The 3D engine didn’t load, so uploads can’t be read right now.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(parseSTL(reader.result), 3));
+        geo.rotateX(-Math.PI / 2);
+        const r = prepare(geo, true);
+        state.model = { name: file.name.replace(/\.stl$/i, ''), source: 'upload', geo: r.geo, vol: r.vol, area: r.area, dims: r.dims, leaky: r.leaky };
+        state.opts.scale = 100;
+        syncOptions();
+        viewer.setModel(r.geo, true, currentColour(), 1);
+        updateEstimate();
+        if (location.hash !== '#estimate') location.hash = '#estimate';
+        toast('Model loaded. Change the options to see the price update.');
+      } catch (e) {
+        toast('That file isn’t a readable STL. Export it again as STL and retry.');
+      }
+    };
+    reader.onerror = () => toast('The file couldn’t be read. Try choosing it again.');
+    reader.readAsArrayBuffer(file);
+  }
+
+  /* ---------- Accounts (demo, stored in this browser) ---------- */
+  async function hashPw(email, pw) {
+    const data = new TextEncoder().encode('extrudo|' + email + '|' + pw);
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      let h = 2166136261; for (const b of data) { h ^= b; h = Math.imul(h, 16777619) >>> 0; } return 'f' + h.toString(16);
+    }
+  }
+  async function seedDemo() {
+    const users = store.get(K_USERS, {});
+    if (!users['demo@extrudo.in']) {
+      users['demo@extrudo.in'] = { name: 'Demo Maker', hash: await hashPw('demo@extrudo.in', 'print123'), created: Date.now() };
+      store.set(K_USERS, users);
+    }
+  }
+  const who = () => state.user ? state.user.email : 'guest';
+  const getCart = () => store.get('extrudo.cart.' + who(), []);
+  function setCart(c) { store.set('extrudo.cart.' + who(), c); updateCartCount(); }
+  const getOrders = () => state.user ? store.get('extrudo.orders.' + state.user.email, []) : [];
+  const setOrders = o => store.set('extrudo.orders.' + state.user.email, o);
+  const getAddrs = () => state.user ? store.get('extrudo.addr.' + state.user.email, []) : [];
+  const setAddrs = a => store.set('extrudo.addr.' + state.user.email, a);
+  function updateCartCount() { const n = sum(getCart(), i => i.opts.qty), c = $('#cartCount'); c.hidden = !n; c.textContent = n; }
+
+  function renderWho() {
+    const box = $('#who');
+    if (state.user) {
+      const first = state.user.name.split(' ')[0];
+      box.innerHTML = `<button type="button" class="acct" id="acctBtn" aria-haspopup="true" aria-expanded="false"><span class="avatar" aria-hidden="true">${esc(first.charAt(0).toUpperCase())}</span><span>${esc(first)}</span></button>
+        <div class="menu" id="acctMenu" hidden><p class="menu-who"><strong>${esc(state.user.name)}</strong><span>${esc(state.user.email)}</span></p><a href="#orders" class="menu-item">Your orders</a><button type="button" class="menu-item" id="logoutBtn">Log out</button></div>`;
+    } else {
+      box.innerHTML = '<span class="guest-chip">Guest</span><button type="button" class="btn primary sm" data-auth="login">Log in</button>';
+    }
+    $('#accountNote').textContent = state.user
+      ? `Logged in as ${state.user.name}. Add as many models as you like, then check out once.`
+      : 'Estimates are free. Fill your cart as a guest and log in when you check out.';
+    updateCartCount();
+  }
+  function closeMenu() { const m = $('#acctMenu'), b = $('#acctBtn'); if (m) m.hidden = true; if (b) b.setAttribute('aria-expanded', 'false'); }
+  function toggleMenu() { const m = $('#acctMenu'), b = $('#acctBtn'); if (!m) return; m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden)); }
+
+  function signIn(email, name) {
+    const guestCart = store.get('extrudo.cart.guest', []);
+    state.user = { email, name };
+    store.set(K_SESSION, email);
+    if (guestCart.length) { setCart(getCart().concat(guestCart)); store.del('extrudo.cart.guest'); }
+    const act = pendingAction; pendingAction = null;
+    closeModal();
+    $('#loginForm').reset(); $('#signupForm').reset();
+    renderWho();
+    rerenderView();
+    if (act) act(); else toast(`Welcome, ${name.split(' ')[0]}.`);
+  }
+  function logout() {
+    closeMenu();
+    state.user = null; store.del(K_SESSION); sess.set(K_GUEST, '1');
+    state.co = { step: 1, addrId: null, pin: '', ref: null, address: null };
+    renderWho();
+    if (state.view === 'checkout') location.hash = '#cart'; else rerenderView();
+    toast('Logged out. You’re browsing as a guest.');
+  }
+  function requireLogin(reason, action) {
+    if (state.user) { action(); return; }
+    pendingAction = action;
+    openModal('login', reason);
+  }
+
+  /* ---------- Modal ---------- */
+  const DEFAULT_REASON = { login: 'Log in to check out and see your orders.', signup: 'An account keeps your cart, addresses and orders together.' };
+  function openModal(pane, reason) {
+    closeMenu();
+    $$('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== pane; });
+    $('#modal').setAttribute('aria-labelledby', pane + 'Title');
+    const r = $(`[data-pane="${pane}"] [data-reason]`);
+    if (r) r.textContent = reason || DEFAULT_REASON[pane] || '';
+    $('#liErr').textContent = ''; $('#suErr').textContent = '';
+    $('#modalBack').hidden = false;
+    document.body.classList.add('modal-open');
+    if (!coarse) {
+      const f = $(`[data-pane="${pane}"] input`) || $(`[data-pane="${pane}"] .btn.primary`);
+      setTimeout(() => f && f.focus({ preventScroll: true }), 40);
+    }
+  }
+  function switchPane(pane) {
+    const keepReason = pendingAction ? ($('[data-pane]:not([hidden]) [data-reason]') || {}).textContent : '';
+    openModal(pane, keepReason);
+  }
+  function closeModal() {
+    $('#modalBack').hidden = true;
+    document.body.classList.remove('modal-open');
+    if (!state.user) { sess.set(K_GUEST, '1'); pendingAction = null; }
+  }
+
+  /* ---------- Cart ---------- */
+  function specLine(o, dims) {
+    const q = qualOf(o.quality);
+    return `${matOf(o.material).label} in ${colourById(o.colour).name.replace(' (PETG only)', '')}, ${q.label} (${q.layer.toFixed(2)} mm), ${fmtNum(o.infill)}% infill`
+      + (o.scale !== 100 ? `, ${o.scale}% size` : '') + (o.supports ? ', with supports' : '') + (dims ? `. ${fmtDims(dims)}` : '');
+  }
+  function addToCart() {
+    const m = state.model, e = state.est; if (!m || !e) return;
+    if (e.tooBig) { toast('Scale the model to fit the 256 mm plate first.'); return; }
+    const o = Object.assign({}, state.opts);
+    const item = {
+      id: uid('I'), name: m.name, source: m.source, sampleId: m.sampleId || null,
+      base: { vol: m.vol, area: m.area, dims: m.dims, leaky: !!m.leaky },
+      opts: o, thumb: renderThumb(m.geo, colourById(o.colour).hex, 160), added: Date.now()
+    };
+    const c = getCart(); c.push(item); setCart(c);
+    toast(`Added ${m.name} to your cart.`, 'View cart', () => { location.hash = '#cart'; });
+  }
+
+  function summaryRows(t, withShipping) {
+    const rows = [[`Items (${sum(t.lines, l => l.pr.qty)})`, t.subtotal], ['Setup fee', t.setup]];
+    if (t.topUp) rows.push([`Minimum order top-up (${inr(P.minimum)})`, t.topUp]);
+    if (withShipping && t.ship) {
+      rows.push([`Shipping, ${t.ship.count > 1 ? t.ship.count + ' boxes' : '1 box'} up to ${t.ship.box.cm.join(' × ')} cm`, t.ship.boxAmount]);
+      if (t.ship.remote) rows.push(['Remote area delivery', t.ship.remote]);
+    }
+    return '<dl class="rows">' + rows.map(r => `<dt>${esc(r[0])}</dt><dd>${signed(r[1])}</dd>`).join('') + '</dl>';
+  }
+
+  function renderCart() {
+    const box = $('#cartBody'), items = getCart();
+    if (!items.length) {
+      box.innerHTML = `<div class="empty"><h3>Your cart is empty</h3><p>Price a model and tap Add to cart. You can add several models and pay for them together.</p><div class="row-btns"><a class="btn primary" href="#estimate">Get an estimate</a><a class="btn ghost" href="#models">Browse models</a></div></div>`;
+      return;
+    }
+    const t = cartTotals(items, '');
+    const list = t.lines.map(({ it, pr }) => `<article class="item" data-id="${it.id}">
+        <div class="thumb">${it.thumb ? `<img src="${it.thumb}" alt="">` : `<span class="thumb-fallback">${esc(it.name.charAt(0))}</span>`}</div>
+        <div><div class="item-name">${esc(it.name)}</div><p class="item-spec">${esc(specLine(it.opts, pr.dims))}</p>
+          <div class="item-ctrl"><div class="stepper sm" role="group" aria-label="Quantity of ${esc(it.name)}"><button type="button" data-qty="-1" aria-label="One fewer">−</button><span>${it.opts.qty}</span><button type="button" data-qty="1" aria-label="One more">+</button></div><button type="button" class="btn text sm" data-remove>Remove</button></div></div>
+        <div class="item-price">${inr(pr.total)}${pr.qty > 1 ? `<small>${inr(pr.total / pr.qty)} each</small>` : ''}${pr.discount ? `<small>${fmtNum(pr.disc.pct)}% off for ${pr.disc.min}+</small>` : ''}</div>
+      </article>`).join('');
+    const ship = t.ship;
+    box.innerHTML = `<div class="split"><div class="items">${list}<div class="row-btns"><a class="btn ghost sm" href="#estimate">Add another model</a></div></div>
+      <aside class="summary" aria-label="Cart summary"><h3>Order summary</h3>${summaryRows(t, true)}
+        <div class="grand"><span>Estimated total</span><strong>${inr(t.total)}</strong></div>
+        <p class="eta"><strong>Ready to ship in about ${t.readyDays} days</strong>${ship && ship.oversize ? 'One part is longer than our largest box, so we’ll confirm shipping before printing.' : 'Delivery date and any remote-area charge are worked out from your pincode at checkout.'}</p>
+        <button class="btn primary wide" type="button" id="checkoutBtn">Check out</button>
+        <p class="help">Prepaid orders only, paid by UPI.</p>
+      </aside></div>`;
+  }
+
+  /* ---------- Checkout ---------- */
+  function addrText(a) { return [a.line1, a.line2, a.city, a.state + ' ' + a.pin].filter(Boolean).join(', '); }
+  function currentPin() {
+    const co = state.co;
+    if (co.addrId && co.addrId !== 'new') { const a = getAddrs().find(x => x.id === co.addrId); return a ? a.pin : ''; }
+    return ($('#adPin').value || '').trim();
+  }
+  function renderSummary() {
+    const items = getCart(); if (!items.length) { $('#coSummary').innerHTML = ''; return; }
+    const pin = state.co.step === 2 && state.co.address ? state.co.address.pin : currentPin();
+    const t = cartTotals(items, pin);
+    state.co.totals = t;
+    const eta = t.arrive
+      ? `<p class="eta"><strong>Arrives by ${fmtDay(t.arrive)}</strong>Ready to ship in about ${t.readyDays} days, then ${t.transit} days in transit${t.region === 'remote' ? ' to a remote area' : ''}.</p>`
+      : `<p class="eta"><strong>Ready to ship in about ${t.readyDays} days</strong>Enter your pincode to see the delivery date.</p>`;
+    $('#coSummary').innerHTML = `<h3>Order summary</h3>
+      <ul class="mini">${t.lines.map(({ it, pr }) => `<li><span>${esc(it.name)} × ${pr.qty}</span><span>${inr(pr.total)}</span></li>`).join('')}</ul>
+      ${summaryRows(t, true)}
+      <div class="grand"><span>Total to pay</span><strong>${inr(t.total)}</strong></div>${eta}
+      ${t.ship && t.ship.oversize ? '<p class="help">One part is longer than our largest box. We’ll confirm shipping before printing.</p>' : ''}`;
+  }
+  function renderAddressStep() {
+    const addrs = getAddrs(), co = state.co, saved = $('#savedAddrs');
+    if (addrs.length) {
+      if (!co.addrId) co.addrId = addrs[0].id;
+      saved.hidden = false;
+      saved.innerHTML = addrs.map(a => `<label class="addr"><input type="radio" name="addrPick" value="${a.id}"${co.addrId === a.id ? ' checked' : ''}><span><strong>${esc(a.name)}</strong><small>${esc(addrText(a))}</small><small>${esc(a.phone)}</small></span></label>`).join('')
+        + `<label class="addr"><input type="radio" name="addrPick" value="new"${co.addrId === 'new' ? ' checked' : ''}><span><strong>Deliver to a new address</strong></span></label>`;
+    } else {
+      co.addrId = 'new'; saved.hidden = true; saved.innerHTML = '';
+    }
+    $('#newAddr').hidden = co.addrId !== 'new';
+    if (co.addrId === 'new' && !$('#adName').value && state.user) $('#adName').value = state.user.name;
+  }
+  function renderCheckout() {
+    if (!getCart().length) { location.hash = '#cart'; return; }
+    const step = state.co.step;
+    $$('#progress li').forEach(li => { const n = +li.dataset.step; li.classList.toggle('on', n === step); li.classList.toggle('done', n < step); });
+    $('#addrForm').hidden = step !== 1;
+    $('#payStep').hidden = step !== 2;
+    if (step === 1) renderAddressStep(); else renderPay();
+    renderSummary();
+  }
+  function readAddress() {
+    const co = state.co;
+    if (co.addrId && co.addrId !== 'new') return { ok: true, address: getAddrs().find(a => a.id === co.addrId) };
+    const v = id => ($(id).value || '').trim();
+    const phone = v('#adPhone').replace(/[\s-]/g, '').replace(/^(\+?91|0)(?=\d{10}$)/, '');
+    const a = { id: uid('A'), name: v('#adName'), phone, line1: v('#adLine1'), line2: v('#adLine2'), city: v('#adCity'), state: $('#adState').value, pin: v('#adPin') };
+    if (a.name.length < 2) return { error: 'Enter the name of the person receiving the parcel.', field: '#adName' };
+    if (!/^[6-9]\d{9}$/.test(a.phone)) return { error: 'Enter a 10-digit mobile number. The courier calls this number.', field: '#adPhone' };
+    if (a.line1.length < 4) return { error: 'Enter your flat or house number and street.', field: '#adLine1' };
+    if (a.city.length < 2) return { error: 'Enter your city.', field: '#adCity' };
+    if (!/^[1-9]\d{5}$/.test(a.pin)) return { error: 'Enter a 6-digit pincode.', field: '#adPin' };
+    if (!a.state) return { error: 'Choose your state.', field: '#adState' };
+    return { ok: true, address: a, isNew: true };
+  }
+  function upiLink(amount, ref) {
+    return 'upi://pay?pa=' + encodeURIComponent(UPI.id) + '&pn=' + encodeURIComponent(UPI.name) + '&am=' + amount.toFixed(2) + '&cu=INR&tn=' + encodeURIComponent('Extrudo order ' + ref);
+  }
+  function qrSvg(text) {
+    if (typeof qrcode !== 'function') return null;
+    try {
+      const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+      const n = qr.getModuleCount(); let d = '';
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+      return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" role="img" aria-label="UPI payment code" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#FFFFFF"/><path d="${d}" fill="#111418"/></svg>`;
+    } catch (e) { return null; }
+  }
+  function renderPay() {
+    const t = state.co.totals || cartTotals(getCart(), state.co.address.pin);
+    if (!state.co.ref) state.co.ref = uid('EX');
+    const link = upiLink(t.total, state.co.ref);
+    $('#payAmt').textContent = inr(t.total);
+    $('#payTo').textContent = `Paying ${UPI.name}`;
+    $('#upiId').textContent = UPI.id;
+    $('#payRef').textContent = state.co.ref;
+    const svg = qrSvg(link);
+    $('#qrBox').innerHTML = svg || `<div class="qr-fallback">The QR code didn’t load. Pay ${esc(inr(t.total))} to the UPI ID shown.</div>`;
+    const app = $('#upiApp'); app.href = link; app.hidden = !coarse;
+  }
+  function placeOrder() {
+    const utr = ($('#utr').value || '').replace(/\D/g, '');
+    if (!/^\d{12}$/.test(utr)) { $('#payErr').textContent = 'Enter the 12-digit UPI reference number from your payment.'; $('#utr').focus(); return; }
+    const t = cartTotals(getCart(), state.co.address.pin);
+    const order = {
+      id: state.co.ref, created: Date.now(), utr, status: 'Payment being checked',
+      items: t.lines.map(({ it, pr }) => ({ name: it.name, qty: pr.qty, spec: specLine(it.opts, pr.dims), total: pr.total })),
+      subtotal: t.subtotal, setup: t.setup, topUp: t.topUp,
+      shipping: t.ship ? { label: `${t.ship.count > 1 ? t.ship.count + ' boxes' : '1 box'} up to ${t.ship.box.cm.join(' × ')} cm`, amount: t.ship.boxAmount, remote: t.ship.remote } : null,
+      total: t.total, address: state.co.address, arriveBy: t.arrive ? t.arrive.getTime() : null
+    };
+    const orders = getOrders(); orders.unshift(order); setOrders(orders);
+    setCart([]);
+    state.justPlaced = order.id;
+    state.co = { step: 1, addrId: null, pin: '', ref: null, address: null };
+    $('#addrForm').reset(); $('#payForm').reset(); $('#payErr').textContent = '';
+    location.hash = '#orders';
+  }
+
+  /* ---------- Orders ---------- */
+  function renderOrders() {
+    const box = $('#ordersBody');
+    if (!state.user) {
+      box.innerHTML = `<div class="empty"><h3>Log in to see your orders</h3><p>Browse and estimate freely as a guest. Orders are kept with your account.</p>
+        <div class="row-btns"><button type="button" class="btn primary" data-auth="login">Log in</button><button type="button" class="btn ghost" data-auth="signup">Create account</button></div></div>`;
+      return;
+    }
+    const orders = getOrders();
+    if (!orders.length) {
+      box.innerHTML = '<div class="empty"><h3>No orders yet</h3><p>Add models to your cart and check out. Your orders will show here.</p><a class="btn primary" href="#estimate">Get an estimate</a></div>';
+      return;
+    }
+    const banner = state.justPlaced ? `<div class="banner" role="status"><strong>Order ${esc(state.justPlaced)} placed.</strong>We’ll match your UPI payment and confirm by email within a day. Printing starts once the payment is confirmed.</div>` : '';
+    box.innerHTML = banner + '<div class="qlist">' + orders.map(o => {
+      const a = o.address || {};
+      return `<article class="q">
+        <div class="q-top"><div><div class="q-name">Order ${esc(o.id)}</div><div class="q-meta">Placed ${fmtDate(o.created)}, ${o.items.length} ${o.items.length > 1 ? 'models' : 'model'}</div></div><div class="q-total">${inr(o.total)}</div></div>
+        <p class="q-spec">Deliver to ${esc(a.name || '')}, ${esc(addrText(a))}.${o.arriveBy ? ` Expected by ${esc(fmtDay(new Date(o.arriveBy)))}.` : ''}</p>
+        <div class="q-foot"><span class="badge">${esc(o.status)}</span><span class="q-meta">UPI reference ${esc(o.utr)}</span></div>
+        <details><summary>Items and charges</summary><ul class="mini">
+          ${o.items.map(i => `<li><span>${esc(i.name)} × ${i.qty}</span><span>${inr(i.total)}</span></li>`).join('')}
+          <li><span>Setup fee</span><span>${inr(o.setup)}</span></li>
+          ${o.topUp ? `<li><span>Minimum order top-up</span><span>${inr(o.topUp)}</span></li>` : ''}
+          ${o.shipping ? `<li><span>Shipping, ${esc(o.shipping.label)}</span><span>${inr(o.shipping.amount)}</span></li>` : ''}
+          ${o.shipping && o.shipping.remote ? `<li><span>Remote area delivery</span><span>${inr(o.shipping.remote)}</span></li>` : ''}
+        </ul></details>
+      </article>`;
+    }).join('') + '</div>';
+  }
+
+  /* ---------- Models gallery ---------- */
+  function renderModels() {
+    const cats = ['All'].concat(Array.from(new Set(SAMPLES.map(s => s.cat))));
+    $('#chips').innerHTML = cats.map(c => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === state.filter}">${c}</button>`).join('');
+    if (!HAS3) { $('#modelGrid').innerHTML = '<p class="empty">Models couldn’t load because the 3D engine didn’t load. Refresh to try again.</p>'; return; }
+    const list = SAMPLES.filter(s => state.filter === 'All' || s.cat === state.filter);
+    const upload = state.filter === 'All' ? `<button type="button" class="card upload-card" data-upload>
+        <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
+        <div class="card-body"><span class="card-name">Your own model</span><span class="card-meta">Upload an STL to price it</span></div></button>` : '';
+    $('#modelGrid').innerHTML = upload + list.map(s => `<button type="button" class="card" data-sample="${s.id}">
+        <div class="thumb">${s.thumb ? `<img src="${s.thumb}" alt="">` : `<span class="thumb-fallback">${esc(s.name.charAt(0))}</span>`}</div>
+        <div class="card-body"><span class="card-name">${esc(s.name)}</span><span class="card-meta">${s.cat}, ${fmtDims(s.dims)}</span><span class="card-price">From ${inr(s.from)}</span></div></button>`).join('');
+  }
+
+  /* ---------- Owner: update prices from the Google Sheet ---------- */
+  let pendingRows = null;
+  function buildPage(rows) {
+    const data = { rows, syncedAt: new Date().toISOString(), source: 'Google Sheet ' + SHEET_ID };
+    const json = JSON.stringify(data).replace(/</g, '\\u003c');
+    return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + RESET_SRC + '</style></head><body>'
+      + PAGE_HEAD + '<style id="site-css">' + CSS_SRC + '</style>' + SHELL_HTML
+      + '<script type="application/json" id="price-data">' + json + '<\/script>' + CDN_TAGS
+      + '<script id="site-js">' + JS_SRC + '<\/script></body></html>';
+  }
+  function diffRows(oldRows, newRows) {
+    const key = r => r[0].toLowerCase() + '|' + r[1].toLowerCase();
+    const om = new Map(oldRows.map(r => [key(r), r])), nm = new Map(newRows.map(r => [key(r), r]));
+    const out = [];
+    newRows.forEach(r => {
+      const o = om.get(key(r));
+      if (!o) out.push(`Added ${r[1]} (${r[0]}): ${r[2]}`);
+      else if (o[2] !== r[2]) out.push(`${r[1]}: ${o[2]} to ${r[2]}`);
+      else if (o[3] !== r[3] || o[4] !== r[4]) out.push(`${r[1]}: unit or note changed`);
+    });
+    oldRows.forEach(r => { if (!nm.has(key(r))) out.push(`Removed ${r[1]} (${r[0]})`); });
+    return out;
+  }
+  function ownerMsg(html) { const box = $('#ownerResult'); box.innerHTML = html; box.hidden = !html; }
+  function mcpErrorText(e) {
+    const c = e && e.code;
+    if (c === 'server_not_connected' || c === 'server_not_found') return 'Google Sheets isn’t connected. Add it in claude.ai Settings, Connectors, then try again.';
+    if (c === 'needs_reauth') return 'Your Google Sheets connection has expired. Reconnect it in claude.ai Settings, Connectors, then try again.';
+    if (c === 'selection_required') return 'You have more than one Google Sheets connection. Choose one when claude.ai asks, then try again.';
+    if (c === 'not_in_manifest' || c === 'approval_required' || c === 'consent_required') return 'This page needs your permission to read the sheet. Allow Google Sheets when claude.ai asks, then try again.';
+    if (c === 'blocked_by_policy') return 'Your organisation’s settings block Google Sheets for this page.';
+    if (c === 'tool_error') return 'Google Sheets couldn’t read the sheet. Check that it still exists and you can open it. ' + esc(String(e.message || '').slice(0, 160));
+    if (c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed') return 'Reading the sheet isn’t available in this view. Open the site in claude.ai to update prices.';
+    return 'Google Sheets didn’t answer. Try again in a minute.';
+  }
+  async function checkSheet() {
+    const btn = $('#syncBtn');
+    btn.disabled = true; btn.textContent = 'Reading your sheet…';
+    ownerMsg('');
+    try {
+      const mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null;
+      if (!mcp) { ownerMsg('<p>Reading the sheet isn’t available in this view. Open the site in claude.ai to update prices.</p>'); return; }
+      let res;
+      try { res = await mcp.callTool('Google Sheets', 'get_values', { spreadsheetId: SHEET_ID, range: 'A1:E300' }, { cache: false }); }
+      catch (e) { ownerMsg('<p>' + mcpErrorText(e) + '</p>'); return; }
+      let payload = res && res.payload;
+      if (typeof payload === 'string') { try { payload = JSON.parse(payload); } catch (e) {} }
+      const values = payload && (payload.values || (payload.content && payload.content.values) || (payload.valueRange && payload.valueRange.values));
+      if (!Array.isArray(values)) { ownerMsg('<p>The sheet came back empty or in a format the site doesn’t recognise. Check that the prices are on the first tab, in columns A to E.</p>'); return; }
+      const rows = normaliseRows(values);
+      const check = buildPricing(rows);
+      const hasMat = rows.some(r => r[0].toLowerCase() === 'material' && num(r[2]) > 0);
+      if (!hasMat) { ownerMsg('<p>The sheet has no Material rows with a price. Add at least one, such as PLA, then try again.</p>'); return; }
+      const changes = diffRows(normaliseRows(PRICE_DATA.rows), rows);
+      if (!changes.length) { ownerMsg('<p>The site already matches your sheet. Nothing to update.</p>'); return; }
+      pendingRows = rows;
+      const skipped = check.skipped.length ? `<p>These rows have no number in the Value column and will be ignored: ${esc(check.skipped.join(', '))}.</p>` : '';
+      ownerMsg(`<p><strong>${changes.length} ${changes.length > 1 ? 'changes' : 'change'} found in your sheet.</strong></p><ul>${changes.slice(0, 12).map(c => `<li>${esc(c)}</li>`).join('')}${changes.length > 12 ? `<li>and ${changes.length - 12} more</li>` : ''}</ul>${skipped}
+        <div class="row-btns"><button type="button" class="btn primary sm" id="publishPrices">Publish new prices</button><button type="button" class="btn text sm" id="cancelPrices">Cancel</button></div>`);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Update prices from sheet';
+    }
+  }
+  async function publishPrices() {
+    if (!pendingRows) return;
+    const pb = $('#publishPrices'); if (pb) { pb.disabled = true; pb.textContent = 'Publishing…'; }
+    const art = window.claude && window.claude.use ? await window.claude.use('artifact') : null;
+    if (!art) { ownerMsg('<p>Saving isn’t available in this view. Open the site in claude.ai to publish prices.</p>'); return; }
+    const count = diffRows(normaliseRows(PRICE_DATA.rows), pendingRows).length;
+    sess.set('extrudo.synced', String(count));
+    try {
+      await art.publish(buildPage(pendingRows));
+    } catch (e) {
+      sess.del('extrudo.synced');
+      const c = e && e.code;
+      if (c === 'conflict') { ownerMsg('<p>The site changed while you were updating. It is reloading now; try again after it loads.</p>'); return; }
+      if (c === 'not_writer' || c === 'not_granted' || c === 'consent_required') { ownerMsg('<p>Only the site owner can publish prices from this view.</p>'); return; }
+      if (c === 'rate_limited') { ownerMsg('<p>Too many updates in a short time. Wait a minute and publish again.</p>'); return; }
+      ownerMsg('<p>The new prices couldn’t be saved. Try again in a minute.</p>');
+    }
+  }
+  async function initOwner() {
+    if (!(window.claude && window.claude.use)) return;
+    let user = null;
+    try { user = await window.claude.use('user'); } catch (e) { user = null; }
+    if (!user) return;
+    let owner = false;
+    try { owner = (await user.isOwner()) || (await user.canEdit()); } catch (e) { owner = false; }
+    if (!owner) return;
+    $('#ownerSynced').textContent = PRICE_DATA.syncedAt ? `Prices from your Google Sheet, last updated ${fmtStamp(PRICE_DATA.syncedAt)}.` : 'Prices come from your Google Sheet.';
+    $('#sheetLink').href = SHEET_URL;
+    $('#ownerBar').hidden = false;
+    const synced = sess.get('extrudo.synced');
+    if (synced) { sess.del('extrudo.synced'); toast(`Prices updated from your sheet: ${synced} ${+synced === 1 ? 'change' : 'changes'}.`); }
+  }
+
+  /* ---------- Toast ---------- */
+  let toastTimer;
+  function toast(msg, label, action) {
+    const t = $('#toast');
+    t.innerHTML = `<span>${esc(msg)}</span>` + (label ? `<button type="button">${esc(label)}</button>` : '');
+    if (label) t.querySelector('button').onclick = () => { t.classList.remove('show'); action(); };
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), label ? 6000 : 3800);
+  }
+
+  /* ---------- Routing ---------- */
+  const VIEWS = ['estimate', 'models', 'cart', 'checkout', 'orders'];
+  function rerenderView() {
+    if (state.view === 'cart') renderCart();
+    else if (state.view === 'checkout') renderCheckout();
+    else if (state.view === 'orders') renderOrders();
+  }
+  function route() {
+    const h = location.hash.replace('#', '');
+    let v = VIEWS.indexOf(h) >= 0 ? h : 'estimate';
+    if (v === 'checkout' && (!state.user || !getCart().length)) { location.hash = '#cart'; return; }
+    const changed = v !== state.view;
+    if (state.view === 'orders' && v !== 'orders') state.justPlaced = null;
+    state.view = v;
+    $$('.view').forEach(s => { s.hidden = s.id !== 'view-' + v; });
+    const tab = v === 'checkout' ? 'cart' : v;
+    $$('.tabs a').forEach(a => { if (a.dataset.view === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    document.body.classList.toggle('on-estimate', v === 'estimate');
+    viewer.setVisible(v === 'estimate');
+    rerenderView();
+    closeMenu();
+    if (changed && booted) window.scrollTo(0, 0);
+  }
+
+  /* ---------- Events ---------- */
+  function bind() {
+    window.addEventListener('hashchange', route);
+
+    document.addEventListener('click', e => {
+      const t = e.target;
+      const auth = t.closest('[data-auth]'); if (auth) { openModal(auth.dataset.auth); return; }
+      if (t.closest('#acctBtn')) { toggleMenu(); return; }
+      if (t.closest('#logoutBtn')) { logout(); return; }
+      if (t.closest('.menu-item') || !t.closest('#acctMenu')) closeMenu();
+      const fit = t.closest('[data-fit]');
+      if (fit) { state.opts.scale = +fit.dataset.fit; syncOptions(); viewer.setScale(state.opts.scale / 100); updateEstimate(); }
+      if (t.closest('#syncBtn')) checkSheet();
+      if (t.closest('#publishPrices')) publishPrices();
+      if (t.closest('#cancelPrices')) { pendingRows = null; ownerMsg(''); }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (!$('#modalBack').hidden) closeModal(); else closeMenu();
+    });
+
+    // Modal
+    $('#modalBack').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    $('#modalClose').addEventListener('click', closeModal);
+    $$('[data-go]').forEach(b => b.addEventListener('click', () => switchPane(b.dataset.go)));
+    $$('[data-guest]').forEach(b => b.addEventListener('click', () => { closeModal(); toast('You’re browsing as a guest. Estimates are free.'); }));
+    $('#fillDemo').addEventListener('click', () => { $('#liEmail').value = 'demo@extrudo.in'; $('#liPass').value = 'print123'; });
+    $('#loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = $('#liEmail').value.trim().toLowerCase(), pw = $('#liPass').value, err = $('#liErr');
+      err.textContent = '';
+      if (!email || !pw) { err.textContent = 'Enter your email and password.'; return; }
+      await demoReady;
+      const u = store.get(K_USERS, {})[email];
+      if (!u) { err.textContent = 'There’s no account with that email. Check it, or create an account.'; return; }
+      if (u.hash !== await hashPw(email, pw)) { err.textContent = 'That password doesn’t match this account. Try again.'; return; }
+      signIn(email, u.name);
+    });
+    $('#signupForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = $('#suName').value.trim(), email = $('#suEmail').value.trim().toLowerCase(), pw = $('#suPass').value, err = $('#suErr');
+      err.textContent = '';
+      if (name.length < 2) { err.textContent = 'Enter your name.'; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Enter a valid email address, like name@example.com.'; return; }
+      if (pw.length < 6) { err.textContent = 'Use a password with at least 6 characters.'; return; }
+      await demoReady;
+      const users = store.get(K_USERS, {});
+      if (users[email]) { err.textContent = 'An account with this email already exists. Log in instead.'; return; }
+      users[email] = { name, hash: await hashPw(email, pw), created: Date.now() };
+      store.set(K_USERS, users);
+      signIn(email, name);
+    });
+
+    // Estimator
+    const opts = $('#opts');
+    opts.addEventListener('submit', e => e.preventDefault());
+    opts.addEventListener('input', e => {
+      const t = e.target, o = state.opts;
+      switch (t.name) {
+        case 'material': o.material = t.value; renderSwatches(); viewer.setColour(currentColour()); break;
+        case 'quality': o.quality = t.value; break;
+        case 'colour': o.colour = t.value; $('#colourName').textContent = currentColour().name; viewer.setColour(currentColour()); break;
+        case 'infill': o.infill = +t.value; break;
+        case 'scale': o.scale = +t.value; $('#scaleOut').textContent = o.scale + '%'; viewer.setScale(o.scale / 100); break;
+        case 'qty': { const n = parseInt(t.value, 10); if (n >= 1) o.qty = Math.min(100, n); else return; break; }
+        case 'supports': o.supports = t.checked; break;
+        default: return;
+      }
+      updateEstimate();
+    });
+    $('#qty').addEventListener('change', () => { $('#qty').value = state.opts.qty; });
+    opts.addEventListener('click', e => {
+      const b = e.target.closest('[data-step]'); if (!b) return;
+      state.opts.qty = clamp(state.opts.qty + (+b.dataset.step), 1, 100);
+      $('#qty').value = state.opts.qty; updateEstimate();
+    });
+    $('#addBtn').addEventListener('click', addToCart);
+    $('#mAdd').addEventListener('click', addToCart);
+    $('#zoomIn').addEventListener('click', () => viewer.zoomBy(1.2));
+    $('#zoomOut').addEventListener('click', () => viewer.zoomBy(1 / 1.2));
+
+    // Upload
+    const fileIn = $('#fileIn');
+    $('#uploadBtn').addEventListener('click', () => fileIn.click());
+    fileIn.addEventListener('change', () => { handleFile(fileIn.files[0]); fileIn.value = ''; });
+    const stage = $('#stage'); let depth = 0;
+    stage.addEventListener('dragenter', e => { e.preventDefault(); depth++; stage.classList.add('dragging'); });
+    stage.addEventListener('dragover', e => e.preventDefault());
+    stage.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) stage.classList.remove('dragging'); });
+    stage.addEventListener('drop', e => { e.preventDefault(); depth = 0; stage.classList.remove('dragging'); handleFile(e.dataTransfer.files[0]); });
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => e.preventDefault());
+
+    // Gallery
+    $('#chips').addEventListener('click', e => { const c = e.target.closest('[data-cat]'); if (!c) return; state.filter = c.dataset.cat; renderModels(); });
+    $('#modelGrid').addEventListener('click', e => {
+      const c = e.target.closest('.card'); if (!c) return;
+      if (c.hasAttribute('data-upload')) { fileIn.click(); return; }
+      loadSample(c.dataset.sample); location.hash = '#estimate';
+    });
+
+    // Cart
+    $('#cartBody').addEventListener('click', e => {
+      if (e.target.closest('#checkoutBtn')) {
+        requireLogin('Log in to check out. Your cart stays as it is.', () => { state.co.step = 1; location.hash = '#checkout'; if (state.view === 'checkout') renderCheckout(); });
+        return;
+      }
+      const row = e.target.closest('[data-id]'); if (!row) return;
+      const cart = getCart(), i = cart.findIndex(x => x.id === row.dataset.id); if (i < 0) return;
+      const q = e.target.closest('[data-qty]');
+      if (q) { cart[i].opts.qty = clamp(cart[i].opts.qty + (+q.dataset.qty), 1, 100); setCart(cart); renderCart(); return; }
+      if (e.target.closest('[data-remove]')) {
+        const removed = cart.splice(i, 1)[0]; setCart(cart); renderCart();
+        toast(`Removed ${removed.name}.`, 'Undo', () => { const now = getCart(); now.splice(i, 0, removed); setCart(now); if (state.view === 'cart') renderCart(); });
+      }
+    });
+
+    // Checkout
+    $('#adState').innerHTML = '<option value="">Choose state</option>' + STATES.map(s => `<option>${esc(s)}</option>`).join('');
+    $('#savedAddrs').addEventListener('change', e => {
+      if (e.target.name !== 'addrPick') return;
+      state.co.addrId = e.target.value; $('#newAddr').hidden = state.co.addrId !== 'new';
+      if (state.co.addrId === 'new' && !$('#adName').value && state.user) $('#adName').value = state.user.name;
+      $('#adErr').textContent = ''; renderSummary();
+    });
+    $('#adPin').addEventListener('input', () => { const p = $('#adPin'); p.value = p.value.replace(/\D/g, '').slice(0, 6); renderSummary(); });
+    $('#addrForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const r = readAddress(), err = $('#adErr');
+      if (!r.ok) { err.textContent = r.error; const f = $(r.field); if (f) f.focus(); return; }
+      err.textContent = '';
+      if (r.isNew && $('#adSave').checked) { const a = getAddrs(); a.unshift(r.address); setAddrs(a.slice(0, 5)); state.co.addrId = r.address.id; }
+      state.co.address = r.address;
+      state.co.step = 2;
+      state.co.totals = cartTotals(getCart(), r.address.pin);
+      renderCheckout();
+      window.scrollTo(0, 0);
+    });
+    $('#backAddr').addEventListener('click', () => { state.co.step = 1; renderCheckout(); });
+    $('#copyUpi').addEventListener('click', () => {
+      const done = () => toast('UPI ID copied.');
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents($('#upiId')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Press Ctrl+C or Copy to copy the UPI ID.'); };
+      try { navigator.clipboard.writeText(UPI.id).then(done, fallback); } catch (e) { fallback(); }
+    });
+    $('#utr').addEventListener('input', () => { const u = $('#utr'); u.value = u.value.replace(/\D/g, '').slice(0, 12); $('#payErr').textContent = ''; });
+    $('#payForm').addEventListener('submit', e => { e.preventDefault(); placeOrder(); });
+
+    // Hide mobile price bar while the full price block is on screen
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(en => $('#mbar').classList.toggle('off', en[0].isIntersecting), { threshold: 0.3 }).observe($('#priceBlock'));
+    }
+  }
+
+  /* ---------- Boot ---------- */
+  function boot() {
+    demoReady = seedDemo();
+    const email = store.get(K_SESSION, null), users = store.get(K_USERS, {});
+    if (email && users[email]) state.user = { email, name: users[email].name };
+
+    buildOptions();
+    bind();
+    viewer.onGrid(cell => { $('#hint').textContent = `Drag to turn. Each grid square is ${cell} mm.`; });
+
+    if (HAS3) {
+      SAMPLES.forEach(s => { Object.assign(s, prepare(s.build(), !!s.flat)); s.from = priceItem(s, DEFAULT_OPTS).total; });
+      if (!viewer.init($('#viewport'))) {
+        $('#viewport').innerHTML = '<p class="nogl">3D preview isn’t available in this browser. Estimates still work.</p>';
+        $('#hint').hidden = true; $('.zoom').hidden = true;
+      }
+      SAMPLES.forEach(s => { s.thumb = renderThumb(s.geo, colourById(s.colour).hex, 300); });
+      loadSample('knot');
+    } else {
+      $('#viewport').innerHTML = '<p class="nogl">The 3D engine didn’t load. Check your connection and refresh the page.</p>';
+      $('#hint').hidden = true; $('.zoom').hidden = true; syncOptions();
+    }
+
+    renderModels();
+    renderWho();
+    route();
+    booted = true;
+    if (!state.user && !sess.get(K_GUEST) && !sess.get('extrudo.synced')) openModal('welcome');
+    initOwner();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
