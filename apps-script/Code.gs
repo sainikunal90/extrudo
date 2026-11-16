@@ -2,7 +2,7 @@
  * Extrudo order API.
  *
  * Paste this into the "Extrudo Customers and Orders" sheet
- * (Extensions > Apps Script), set GOOGLE_CLIENT_ID below, then
+ * (Extensions > Apps Script), then
  * Deploy > New deployment > Web app, with "Execute as: Me" and
  * "Who has access: Anyone".
  *
@@ -14,7 +14,7 @@
  * or see anyone else's data.
  */
 
-const GOOGLE_CLIENT_ID = 'PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '25832412551-72g8a86kfgr6hinn3hoib1n0m2uo5sqa.apps.googleusercontent.com';
 
 const USERS = 'Users';
 const ORDERS = 'Orders';
