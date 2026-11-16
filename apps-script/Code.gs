@@ -16,6 +16,10 @@
 
 const GOOGLE_CLIENT_ID = '25832412551-72g8a86kfgr6hinn3hoib1n0m2uo5sqa.apps.googleusercontent.com';
 
+// The "Extrudo Customers and Orders" sheet. Works whether this script was
+// opened from the sheet or created on its own.
+const SHEET_ID = '1uoIu0P7Pr9cnLUezvWIyA_z7Tu9Ad-rkXWi9Zyeyex8';
+
 const USERS = 'Users';
 const ORDERS = 'Orders';
 const MAX_REQUESTS_PER_10_MIN = 40;
@@ -173,7 +177,7 @@ function listOrders_(user) {
 /* ---------- Helpers ---------- */
 
 function sheet_(name) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(name);
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(name);
   if (!sh) throw new Error('Missing tab: ' + name);
   return sh;
 }
