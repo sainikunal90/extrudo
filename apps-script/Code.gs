@@ -6,6 +6,9 @@
  * Deploy > New deployment > Web app, with "Execute as: Me" and
  * "Who has access: Anyone".
  *
+ * For every new order, the script also emails the owner (the account the
+ * script runs as) with the order's details.
+ *
  * Every request must carry a Google sign-in token issued for
  * GOOGLE_CLIENT_ID. The script checks it with Google and uses the
  * email inside the token, never an email sent by the browser, so a
@@ -168,7 +171,81 @@ function addOrder_(user, o) {
   sh.getRange(row, 16, 1, 4).setValues([[String(o.utr), 'Payment being checked', 'New', expected]]);
 
   upsertUser_(user, o.saveAddress ? { phone: phone, addressText: addressText, pin: pin } : { phone: phone });
+
+  notifyOwner_({
+    id: id, row: row, name: clean_(a.name, 120), email: user.email, phone: phone,
+    address: addressText + ' ' + pin, lines: lines, pieces: pieces, amounts: amounts,
+    utr: String(o.utr), expected: expected
+  });
   return { ok: true, id: id };
+}
+
+/* ---------- Email to the shop owner ---------- */
+
+// Emails the owner of this script about a new order. A failed email never
+// stops the order from being saved.
+function notifyOwner_(o) {
+  try {
+    const to = Session.getEffectiveUser().getEmail();
+    if (!to) return;
+    const total = o.amounts.reduce(function (t, n) { return t + n; }, 0);
+    const labels = ['Items', 'Setup fee', 'Minimum order top-up', 'Shipping', 'Remote area'];
+    const rupees = function (n) { return '₹' + Number(n).toLocaleString('en-IN'); };
+    const when = o.expected ? Utilities.formatDate(o.expected, 'Asia/Kolkata', 'EEE d MMM') : 'not worked out';
+    const sheetLink = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit#gid=' + sheet_(ORDERS).getSheetId() + '&range=A' + o.row;
+    const folderLink = 'https://drive.google.com/drive/folders/' + STL_FOLDER_ID;
+
+    const charges = o.amounts.map(function (n, i) { return [labels[i], n]; }).filter(function (c, i) { return i < 2 || c[1] > 0; });
+    const text = [
+      'New order ' + o.id + ', ' + rupees(total),
+      '',
+      'Customer: ' + o.name + ', ' + o.email + ', ' + o.phone,
+      'Deliver to: ' + o.address,
+      'Expected delivery: ' + when,
+      '',
+      'Models (' + o.pieces + (o.pieces > 1 ? ' pieces' : ' piece') + '):',
+    ].concat(o.lines.map(function (l) { return '- ' + l; })).concat([
+      '',
+    ]).concat(charges.map(function (c) { return c[0] + ': ' + rupees(c[1]); })).concat([
+      'Total: ' + rupees(total),
+      '',
+      'UPI reference (UTR): ' + o.utr + '. Check it against your UPI payments, then set Payment status to Paid.',
+      '',
+      'Order in the sheet: ' + sheetLink,
+      'STL files folder: ' + folderLink,
+      'The model files are uploading from the customer\'s browser and appear in the Model files column when they finish.'
+    ]).join('\n');
+
+    const h = function (v) { return String(v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    const row = function (k, v) { return '<tr><td style="padding:4px 16px 4px 0;color:#5A6472;vertical-align:top">' + h(k) + '</td><td style="padding:4px 0">' + v + '</td></tr>'; };
+    const html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#18202B;max-width:620px">'
+      + '<h2 style="margin:0 0 4px">New order ' + h(o.id) + '</h2>'
+      + '<p style="margin:0 0 16px;font-size:18px"><b>' + rupees(total) + '</b>, payment being checked</p>'
+      + '<table style="border-collapse:collapse">'
+      + row('Customer', h(o.name) + '<br>' + h(o.email) + '<br>' + h(o.phone))
+      + row('Deliver to', h(o.address))
+      + row('Expected delivery', h(when))
+      + row('Models', o.lines.map(h).join('<br>'))
+      + charges.map(function (c) { return row(c[0], rupees(c[1])); }).join('')
+      + row('<b>Total</b>', '<b>' + rupees(total) + '</b>')
+      + row('UPI reference', '<b>' + h(o.utr) + '</b>')
+      + '</table>'
+      + '<p>Check the UPI reference against your payments, then set Payment status to Paid in the sheet.</p>'
+      + '<p><a href="' + sheetLink + '">Open this order in the sheet</a> &nbsp; <a href="' + folderLink + '">Open the STL files folder</a></p>'
+      + '<p style="color:#5A6472">The model files are uploading from the customer\'s browser and appear in the Model files column when they finish.</p>'
+      + '</div>';
+
+    MailApp.sendEmail({
+      to: to,
+      replyTo: o.email,
+      name: 'Extrudo orders',
+      subject: 'New order ' + o.id + ': ' + rupees(total) + ' from ' + o.name,
+      body: text,
+      htmlBody: html
+    });
+  } catch (err) {
+    console.error('Order email failed: ' + err);
+  }
 }
 
 function listOrders_(user) {
