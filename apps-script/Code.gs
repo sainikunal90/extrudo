@@ -44,12 +44,12 @@ function doPost(e) {
   }
   if (!body || typeof body !== 'object') return json_({ ok: false, error: 'bad_request' });
 
-  const user = verifyGoogleToken_(body.idToken);
-  if (!user) return json_({ ok: false, error: 'not_signed_in' });
-  // File pieces are limited by the file's size instead, so they skip this count.
-  if (body.action !== 'fileChunk' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
-
   try {
+    const user = verifyGoogleToken_(body.idToken);
+    if (!user) return json_({ ok: false, error: 'not_signed_in' });
+    // File pieces are limited by the file's size instead, so they skip this count.
+    if (body.action !== 'fileChunk' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
+
     if (body.action === 'signin') return json_(locked_(function () { return upsertUser_(user, null); }));
     if (body.action === 'order') return json_(locked_(function () { return addOrder_(user, body.order); }));
     if (body.action === 'orders') return json_(listOrders_(user));
