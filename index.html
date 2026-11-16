@@ -321,6 +321,19 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
 .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .toast button{background:none;border:0;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap}
 
+/* Model file uploads after checkout */
+.up-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 14px;max-width:820px;display:grid;gap:14px}
+.up-job{display:grid;gap:8px}
+.up-job .help{margin:0}
+.up-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.up-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;font-size:.94rem}
+.up-row span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up-state{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.up-state.ok{color:var(--ok);font-weight:700}
+.up-state.bad{color:var(--danger)}
+.up-bar{grid-column:1/-1;height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.up-bar i{display:block;height:100%;background:var(--accent)}
+
 /* Live site: Google sign-in replaces the demo accounts */
 body.live .demo-only{display:none!important}
 body:not(.live) .live-only{display:none!important}
@@ -495,6 +508,7 @@ body:not(.live) .live-only{display:none!important}
           <form class="pay-form" id="payForm" novalidate>
             <div class="input"><label for="utr">UPI reference number (UTR)</label><input id="utr" inputmode="numeric" maxlength="12" placeholder="12 digits" autocomplete="off"></div>
             <p class="help">After paying, open the payment in your UPI app and copy its 12-digit reference number. We match it to your payment before printing.</p>
+            <p class="help live-only">After you place the order, keep this page open while your model files upload.</p>
             <p class="err" id="payErr" role="alert"></p>
             <div class="row-btns"><button class="btn primary" type="submit">Place order</button><button class="btn text" type="button" id="backAddr">Change address</button></div>
           </form>
@@ -509,6 +523,7 @@ body:not(.live) .live-only{display:none!important}
       <h2>Your orders</h2>
       <p>Orders you have placed, with their payment status and expected delivery.</p>
     </div>
+    <div class="up-panel" id="uploadPanel" role="status" hidden></div>
     <div id="ordersBody"></div>
   </section>
 
@@ -577,6 +592,7 @@ body:not(.live) .live-only{display:none!important}
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept=".stl" hidden>
+<input type="file" id="reFile" accept=".stl" hidden>
 </div>
 <script type="application/json" id="price-data">{"rows":[["Material","PLA","2.2","₹ per gram","Price per gram of filament used"],["Material","PETG","2.6","₹ per gram",""],["Material","TPU","4","₹ per gram","Add or remove materials as you like"],["Material","ABS","3","₹ per gram",""],["Quality","Draft (0.28 mm)","0.9","multiplier","Applied to printer-time cost"],["Quality","Standard (0.20 mm)","1","multiplier","Baseline"],["Quality","Fine (0.12 mm)","1.5","multiplier",""],["Infill","10%","0.85","multiplier","Applied to material cost"],["Infill","20%","1","multiplier","Baseline"],["Infill","40%","1.25","multiplier",""],["Infill","60%","1.5","multiplier",""],["Infill","100%","2","multiplier",""],["Size","Small (under 5 cm)","0","₹ extra","Flat add-on per piece"],["Size","Medium (5 to 15 cm)","20","₹ extra",""],["Size","Large (15 to 25 cm)","60","₹ extra",""],["Printer","Machine time","50","₹ per hour",""],["Fees","Setup fee","40","₹ per order",""],["Fees","Minimum order","149","₹",""],["Fees","Supports","15","% extra material",""],["Discount","3+ pieces","5","% off",""],["Discount","5+ pieces","10","% off",""],["Discount","10+ pieces","15","% off",""],["Shipping","Box up to 15 x 12 x 10 cm","99","₹ per box","Billed as 0.5 kg. The site picks the smallest box that fits the whole cart"],["Shipping","Box up to 22 x 18 x 12 cm","169","₹ per box","Billed as 1 kg"],["Shipping","Box up to 30 x 20 x 15 cm","299","₹ per box","Billed as 2 kg. Bigger orders use more than one box"],["Shipping","Remote areas","100","₹ extra per order","J&K, Ladakh, North East, Sikkim, Andaman and Lakshadweep pincodes"],["Delivery","Printer hours per day","16","hours","Used to work out when an order is ready to ship"],["Delivery","Transit, Delhi NCR","2","days","Pincodes starting 110, 121, 122 and 201"],["Delivery","Transit, rest of India","5","days",""],["Delivery","Transit, remote areas","8","days",""]],"syncedAt":"2026-11-16T18:38:06.000Z","source":"Google Sheet 1cWLCh_2Ead388qhd6jEJeEdk5E3iSkTQjY0CxOa3Rac"}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -610,6 +626,7 @@ body:not(.live) .live-only{display:none!important}
   };
   const LIVE = !!(LIVE_CONFIG.googleClientId && LIVE_CONFIG.apiUrl) && !(window.claude && window.claude.use);
   const PHYS = { shellMm: 1.2, warmup: 300, perLayer: 1.5, build: [256, 256, 256] };
+  const MAX_FILE_BYTES = 100 * 1024 * 1024; // largest STL a customer can upload
   const MAT_INFO = {
     PLA: { density: 1.24, speed: 1, sub: 'Everyday parts' },
     PETG: { density: 1.27, speed: 0.85, sub: 'Tough, heat-resistant' },
@@ -670,7 +687,7 @@ body:not(.live) .live-only{display:none!important}
     del(k) { delete mem['s:' + k]; try { sessionStorage.removeItem(k); } catch (e) {} }
   };
   const K_USERS = 'extrudo.users', K_SESSION = 'extrudo.session', K_GUEST = 'extrudo.guest';
-  const K_PROFILE = 'extrudo.profile', K_TOKEN = 'extrudo.gtoken';
+  const K_PROFILE = 'extrudo.profile', K_TOKEN = 'extrudo.gtoken', K_UPLOADS = 'extrudo.uploads';
 
   /* ---------- Prices from the owner's Google Sheet ---------- */
   let PRICE_DATA = { rows: [], syncedAt: null };
@@ -1130,7 +1147,7 @@ body:not(.live) .live-only{display:none!important}
   function handleFile(file) {
     if (!file) return;
     if (!/\.stl$/i.test(file.name)) { toast('Choose an .stl file. Other formats aren’t supported yet.'); return; }
-    if (file.size > 60 * 1024 * 1024) { toast('That file is over 60 MB. Simplify the mesh and try again.'); return; }
+    if (file.size > MAX_FILE_BYTES) { toast('This file is over 100 MB. Lower the mesh detail when you export it, then upload it again.'); return; }
     if (!HAS3) { toast('The 3D engine didn’t load, so uploads can’t be read right now.'); return; }
     const reader = new FileReader();
     reader.onload = () => {
@@ -1139,7 +1156,7 @@ body:not(.live) .live-only{display:none!important}
         geo.setAttribute('position', new THREE.BufferAttribute(parseSTL(reader.result), 3));
         geo.rotateX(-Math.PI / 2);
         const r = prepare(geo, true);
-        state.model = { name: file.name.replace(/\.stl$/i, ''), source: 'upload', geo: r.geo, vol: r.vol, area: r.area, dims: r.dims, leaky: r.leaky };
+        state.model = { name: file.name.replace(/\.stl$/i, ''), source: 'upload', geo: r.geo, vol: r.vol, area: r.area, dims: r.dims, leaky: r.leaky, file };
         state.opts.scale = 100;
         syncOptions();
         viewer.setModel(r.geo, true, currentColour(), 1);
@@ -1208,6 +1225,7 @@ body:not(.live) .live-only{display:none!important}
     renderWho();
     rerenderView();
     if (act) act(); else toast(`Welcome, ${name.split(' ')[0]}.`);
+    if (LIVE) runUploads();
   }
   function logout() {
     closeMenu();
@@ -1273,6 +1291,179 @@ body:not(.live) .live-only{display:none!important}
     return data;
   }
 
+  /* ---------- Model files: saved in this browser, sent to Drive after checkout ---------- */
+  const idb = (function () {
+    let dbp = null;
+    function open() {
+      if (!dbp) dbp = new Promise((res, rej) => {
+        try {
+          const r = indexedDB.open('extrudo', 1);
+          r.onupgradeneeded = () => r.result.createObjectStore('files');
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => rej(r.error);
+        } catch (e) { rej(e); }
+      });
+      return dbp;
+    }
+    function run(mode, fn) {
+      return open().then(db => new Promise((res, rej) => {
+        const t = db.transaction('files', mode), req = fn(t.objectStore('files'));
+        t.oncomplete = () => res(req ? req.result : undefined);
+        t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+      }));
+    }
+    return {
+      put: (k, v) => run('readwrite', st => st.put(v, k)),
+      get: k => run('readonly', st => st.get(k)),
+      del: k => run('readwrite', st => st.delete(k)),
+      keys: () => run('readonly', st => st.getAllKeys())
+    };
+  })();
+
+  // Binary STL of a sample model, turned so it stands upright in a slicer (Z up).
+  function stlBlob(geo) {
+    const g = geo.index ? geo.toNonIndexed() : geo;
+    const p = g.attributes.position.array, n = p.length / 9;
+    const buf = new ArrayBuffer(84 + n * 50), dv = new DataView(buf);
+    const head = 'Extrudo sample model';
+    for (let i = 0; i < head.length; i++) dv.setUint8(i, head.charCodeAt(i));
+    dv.setUint32(80, n, true);
+    let o = 84;
+    for (let t = 0; t < n; t++) {
+      const v = [0, 1, 2].map(k => { const b = t * 9 + k * 3; return [p[b], -p[b + 2], p[b + 1]]; });
+      const ux = v[1][0] - v[0][0], uy = v[1][1] - v[0][1], uz = v[1][2] - v[0][2];
+      const wx = v[2][0] - v[0][0], wy = v[2][1] - v[0][1], wz = v[2][2] - v[0][2];
+      const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, l = Math.hypot(nx, ny, nz) || 1;
+      dv.setFloat32(o, nx / l, true); dv.setFloat32(o + 4, ny / l, true); dv.setFloat32(o + 8, nz / l, true); o += 12;
+      v.forEach(q => { dv.setFloat32(o, q[0], true); dv.setFloat32(o + 4, q[1], true); dv.setFloat32(o + 8, q[2], true); o += 12; });
+      dv.setUint16(o, 0, true); o += 2;
+    }
+    return new Blob([buf], { type: 'application/octet-stream' });
+  }
+
+  const uploads = { list: store.get(K_UPLOADS, []), running: false, status: {}, refile: null };
+  const saveUploads = () => store.set(K_UPLOADS, uploads.list);
+  const upKey = (orderId, index) => orderId + ':' + index;
+
+  function queueUploads(orderId, items) {
+    uploads.list.push({
+      orderId, email: state.user.email,
+      files: items.map((it, i) => ({ index: i, name: it.name, kind: it.source === 'upload' ? 'upload' : 'sample', key: it.id, sampleId: it.sampleId || null, done: false }))
+    });
+    saveUploads();
+    setTimeout(runUploads, 300);
+  }
+  async function fileBlob(f) {
+    if (f.kind === 'upload') { try { return (await idb.get(f.key)) || null; } catch (e) { return null; } }
+    const smp = SAMPLES.find(x => x.id === f.sampleId);
+    return smp && smp.geo ? stlBlob(smp.geo) : null;
+  }
+  function toBase64(blob) {
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result).split(',')[1] || '');
+      fr.onerror = () => rej(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  }
+  async function sendPiece(payload) {
+    try { return await api('fileChunk', payload); }
+    catch (e) {
+      if (e.code !== 'network' && e.code !== 'server_error' && e.code !== 'busy') throw e;
+      await new Promise(r => setTimeout(r, 2500));
+      return api('fileChunk', payload);
+    }
+  }
+  async function uploadOne(orderId, index, blob, onProgress) {
+    const start = await api('fileStart', { orderId, index, size: blob.size });
+    const chunk = start.chunkSize || 8 * 1024 * 1024;
+    let offset = 0;
+    while (offset < blob.size) {
+      const piece = blob.slice(offset, Math.min(offset + chunk, blob.size));
+      const r = await sendPiece({ orderId, index, offset, data: await toBase64(piece) });
+      offset = r.done ? blob.size : Math.max(offset + 1, r.received || offset + piece.size);
+      onProgress(Math.min(100, Math.round(offset / blob.size * 100)));
+    }
+  }
+  async function runUploads() {
+    if (!LIVE || uploads.running || !state.user) { renderUploads(); return; }
+    if (!tokenValid()) { renderUploads(); return; }
+    uploads.running = true;
+    let finished = 0;
+    try {
+      for (const job of uploads.list) {
+        if (job.email !== state.user.email) continue;
+        for (const f of job.files) {
+          if (f.done) continue;
+          const st = uploads.status[upKey(job.orderId, f.index)] = { state: 'uploading', pct: 0 };
+          renderUploads();
+          const blob = await fileBlob(f);
+          if (!blob) { st.state = 'missing'; renderUploads(); continue; }
+          try {
+            await uploadOne(job.orderId, f.index, blob, pct => { st.pct = pct; renderUploads(); });
+            f.done = true; st.state = 'done'; finished++; saveUploads();
+            if (f.kind === 'upload') idb.del(f.key).catch(() => {});
+          } catch (e) {
+            st.state = e.code === 'not_signed_in' ? 'signin' : 'failed';
+            if (e.code === 'not_signed_in') { liveToken = null; store.del(K_TOKEN); }
+          }
+          renderUploads();
+        }
+      }
+    } finally {
+      uploads.running = false;
+      const left = uploads.list.filter(j => j.files.some(f => !f.done));
+      if (finished && !left.some(j => state.user && j.email === state.user.email)) toast('All model files are uploaded.');
+      uploads.list = left; saveUploads();
+      renderUploads();
+      if (state.view === 'orders' && finished) renderOrders();
+    }
+  }
+  function renderUploads() {
+    const box = $('#uploadPanel'); if (!box) return;
+    const jobs = LIVE && state.user ? uploads.list.filter(j => j.email === state.user.email && j.files.some(f => !f.done) ) : [];
+    if (!jobs.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    const signedIn = tokenValid();
+    box.innerHTML = jobs.map(j => `<div class="up-job"><strong>Model files for order ${esc(j.orderId)}</strong>
+        <p class="help">${signedIn ? 'Keep this page open until every file shows Uploaded.' : 'Sign in with Google again to finish sending these files.'}</p>
+        <ul class="up-list">${j.files.map(f => {
+          const st = uploads.status[upKey(j.orderId, f.index)] || {};
+          let right = '<span class="up-state">Waiting</span>', bar = '';
+          if (f.done || st.state === 'done') right = '<span class="up-state ok">Uploaded</span>';
+          else if (st.state === 'uploading') { right = `<span class="up-state">${st.pct || 0}%</span>`; bar = `<div class="up-bar"><i style="width:${st.pct || 0}%"></i></div>`; }
+          else if (st.state === 'missing') right = `<span class="up-state bad">Not in this browser <button type="button" class="btn ghost sm" data-refile="${esc(upKey(j.orderId, f.index))}">Choose file</button></span>`;
+          else if (st.state === 'failed') right = `<span class="up-state bad">Didn’t upload <button type="button" class="btn ghost sm" data-retry>Try again</button></span>`;
+          else if (st.state === 'signin') right = '<span class="up-state bad">Sign in again</span>';
+          return `<li class="up-row"><span>${esc(f.name)}</span>${right}${bar}</li>`;
+        }).join('')}</ul>
+        ${signedIn ? '' : '<div><button type="button" class="btn primary sm" data-auth="login">Sign in with Google</button></div>'}</div>`).join('');
+  }
+  function useNewFile(file) {
+    const target = uploads.refile; uploads.refile = null;
+    if (!target || !file) return;
+    if (!/\.stl$/i.test(file.name)) { toast('Choose an .stl file.'); return; }
+    if (file.size > MAX_FILE_BYTES) { toast('This file is over 100 MB. Lower the mesh detail when you export it, then choose it again.'); return; }
+    const [orderId, index] = [target.slice(0, target.lastIndexOf(':')), +target.slice(target.lastIndexOf(':') + 1)];
+    const job = uploads.list.find(j => j.orderId === orderId); if (!job) return;
+    const f = job.files.find(x => x.index === index); if (!f) return;
+    const key = 'refile-' + target;
+    idb.put(key, file).then(() => { f.kind = 'upload'; f.key = key; saveUploads(); delete uploads.status[target]; runUploads(); })
+      .catch(() => toast('This browser couldn’t keep the file. Try a different browser.'));
+  }
+  // Removes saved files that are no longer in any cart or waiting to upload.
+  function cleanupFiles() {
+    const keep = new Set();
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf('extrudo.cart.') === 0) (JSON.parse(localStorage.getItem(k)) || []).forEach(it => keep.add(it.id));
+      }
+    } catch (e) { return; }
+    uploads.list.forEach(j => j.files.forEach(f => { if (!f.done) keep.add(f.key); }));
+    idb.keys().then(keys => keys.forEach(k => { if (!keep.has(k)) idb.del(k).catch(() => {}); })).catch(() => {});
+  }
+
   /* ---------- Modal ---------- */
   const DEFAULT_REASON = { login: LIVE ? 'Sign in with Google to check out and follow your orders.' : 'Log in to check out and see your orders.', signup: 'An account keeps your cart, addresses and orders together.' };
   function openModal(pane, reason) {
@@ -1316,6 +1507,7 @@ body:not(.live) .live-only{display:none!important}
       opts: o, thumb: renderThumb(m.geo, colourById(o.colour).hex, 160), added: Date.now()
     };
     const c = getCart(); c.push(item); setCart(c);
+    if (LIVE && m.source === 'upload' && m.file) idb.put(item.id, m.file).catch(() => {});
     toast(`Added ${m.name} to your cart.`, 'View cart', () => { location.hash = '#cart'; });
   }
 
@@ -1452,6 +1644,7 @@ body:not(.live) .live-only{display:none!important}
     const btn = $('#payForm button[type=submit]');
     btn.disabled = true; btn.textContent = 'Placing order…';
     $('#payErr').textContent = '';
+    const cartItems = getCart();
     try {
       const a = order.address;
       await api('order', { order: {
@@ -1461,6 +1654,7 @@ body:not(.live) .live-only{display:none!important}
         address: { name: a.name, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, pin: a.pin },
         arriveBy: order.arriveBy, saveAddress: !!state.co.saveAddr
       } });
+      queueUploads(order.id, cartItems);
       finishOrder(order);
     } catch (e) {
       const c = e.code;
@@ -1519,7 +1713,8 @@ body:not(.live) .live-only{display:none!important}
   }
   function liveOrderCard(o) {
     const items = String(o.items || '').split('\n').filter(Boolean);
-    const notes = [o.tracking ? `Tracking number ${esc(o.tracking)}.` : '', o.expected ? `Expected by ${esc(fmtDay(new Date(o.expected)))}.` : ''].filter(Boolean).join(' ');
+    const files = items.length ? (o.files >= items.length ? 'All model files received.' : `${o.files || 0} of ${items.length} model files received.`) : '';
+    const notes = [o.tracking ? `Tracking number ${esc(o.tracking)}.` : '', o.expected ? `Expected by ${esc(fmtDay(new Date(o.expected)))}.` : '', files].filter(Boolean).join(' ');
     return `<article class="q">
         <div class="q-top"><div><div class="q-name">Order ${esc(o.id)}</div><div class="q-meta">${o.placedAt ? 'Placed ' + fmtDate(o.placedAt) + ', ' : ''}${o.pieces} ${o.pieces > 1 ? 'pieces' : 'piece'}</div></div><div class="q-total">${inr(o.total || 0)}</div></div>
         ${notes ? `<p class="q-spec">${notes}</p>` : ''}
@@ -1528,6 +1723,7 @@ body:not(.live) .live-only{display:none!important}
       </article>`;
   }
   function renderLiveOrders(box) {
+    renderUploads();
     if (!tokenValid()) {
       box.innerHTML = placedBanner() + `<div class="empty"><h3>Sign in to see your orders</h3><p>Your sign-in has expired. Sign in with Google again to see the latest status of your orders.</p><button type="button" class="btn primary" data-auth="login">Sign in with Google</button></div>`;
       return;
@@ -1702,6 +1898,9 @@ body:not(.live) .live-only{display:none!important}
       if (t.closest('.menu-item') || !t.closest('#acctMenu')) closeMenu();
       const fit = t.closest('[data-fit]');
       if (fit) { state.opts.scale = +fit.dataset.fit; syncOptions(); viewer.setScale(state.opts.scale / 100); updateEstimate(); }
+      if (t.closest('[data-retry]')) runUploads();
+      const rf = t.closest('[data-refile]');
+      if (rf) { uploads.refile = rf.dataset.refile; $('#reFile').click(); }
       if (t.closest('#syncBtn')) checkSheet();
       if (t.closest('#publishPrices')) publishPrices();
       if (t.closest('#cancelPrices')) { pendingRows = null; ownerMsg(''); }
@@ -1775,6 +1974,8 @@ body:not(.live) .live-only{display:none!important}
     const fileIn = $('#fileIn');
     $('#uploadBtn').addEventListener('click', () => fileIn.click());
     fileIn.addEventListener('change', () => { handleFile(fileIn.files[0]); fileIn.value = ''; });
+    $('#reFile').addEventListener('change', e => { useNewFile(e.target.files[0]); e.target.value = ''; });
+    window.addEventListener('beforeunload', e => { if (uploads.running) { e.preventDefault(); e.returnValue = ''; } });
     const stage = $('#stage'); let depth = 0;
     stage.addEventListener('dragenter', e => { e.preventDefault(); depth++; stage.classList.add('dragging'); });
     stage.addEventListener('dragover', e => e.preventDefault());
@@ -1881,6 +2082,7 @@ body:not(.live) .live-only{display:none!important}
     booted = true;
     if (!state.user && !sess.get(K_GUEST) && !sess.get('extrudo.synced')) openModal('welcome');
     initOwner();
+    if (LIVE) { cleanupFiles(); setTimeout(runUploads, 1200); }
   }
 
   boot();

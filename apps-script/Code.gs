@@ -20,8 +20,15 @@ const GOOGLE_CLIENT_ID = '25832412551-72g8a86kfgr6hinn3hoib1n0m2uo5sqa.apps.goog
 // opened from the sheet or created on its own.
 const SHEET_ID = '1uoIu0P7Pr9cnLUezvWIyA_z7Tu9Ad-rkXWi9Zyeyex8';
 
+// The Extrudo > STL files folder in Drive. Customers' model files are saved
+// here, named with the order ID.
+const STL_FOLDER_ID = '1ieWRQSamuGr_ICGRYGqwhFQ2A__bsJ17';
+const MAX_FILE_BYTES = 100 * 1024 * 1024;   // 100 MB
+const CHUNK_BYTES = 8 * 1024 * 1024;        // files arrive in 8 MB pieces
+
 const USERS = 'Users';
 const ORDERS = 'Orders';
+const FILES_COLUMN = 22;                    // column V, "Model files"
 const MAX_REQUESTS_PER_10_MIN = 40;
 
 function doGet() {
@@ -39,22 +46,32 @@ function doPost(e) {
 
   const user = verifyGoogleToken_(body.idToken);
   if (!user) return json_({ ok: false, error: 'not_signed_in' });
-  if (!withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
+  // File pieces are limited by the file's size instead, so they skip this count.
+  if (body.action !== 'fileChunk' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
 
+  try {
+    if (body.action === 'signin') return json_(locked_(function () { return upsertUser_(user, null); }));
+    if (body.action === 'order') return json_(locked_(function () { return addOrder_(user, body.order); }));
+    if (body.action === 'orders') return json_(listOrders_(user));
+    if (body.action === 'fileStart') return json_(fileStart_(user, body));
+    if (body.action === 'fileChunk') return json_(fileChunk_(user, body));
+    return json_({ ok: false, error: 'unknown_action' });
+  } catch (err) {
+    console.error(err);
+    return json_({ ok: false, error: err && err.message === 'busy' ? 'busy' : 'server_error' });
+  }
+}
+
+// Runs fn while holding the script lock, so two orders never write the same row.
+function locked_(fn) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
   } catch (err) {
-    return json_({ ok: false, error: 'busy' });
+    throw new Error('busy');
   }
   try {
-    if (body.action === 'signin') return json_(upsertUser_(user, null));
-    if (body.action === 'order') return json_(addOrder_(user, body.order));
-    if (body.action === 'orders') return json_(listOrders_(user));
-    return json_({ ok: false, error: 'unknown_action' });
-  } catch (err) {
-    console.error(err);
-    return json_({ ok: false, error: 'server_error' });
+    return fn();
   } finally {
     lock.releaseLock();
   }
@@ -158,7 +175,7 @@ function listOrders_(user) {
   const sh = sheet_(ORDERS);
   const last = lastRow_(sh);
   if (last < 2) return { ok: true, orders: [] };
-  const rows = sh.getRange(2, 1, last - 1, 21).getValues();
+  const rows = sh.getRange(2, 1, last - 1, FILES_COLUMN).getValues();
   const iso = function (d) { return d instanceof Date ? d.toISOString() : ''; };
   const orders = rows
     .filter(function (r) { return String(r[3]).toLowerCase() === user.email; })
@@ -166,12 +183,119 @@ function listOrders_(user) {
       return {
         id: String(r[0]), placedAt: iso(r[1]), items: String(r[7]), pieces: Number(r[8]) || 0,
         total: Number(r[14]) || 0, utr: String(r[15]), payment: String(r[16]), status: String(r[17]),
-        expected: iso(r[18]), tracking: String(r[19])
+        expected: iso(r[18]), tracking: String(r[19]),
+        files: String(r[FILES_COLUMN - 1]).split('\n').filter(String).length
       };
     })
     .reverse()
     .slice(0, 50);
   return { ok: true, orders: orders };
+}
+
+/* ---------- Model files ---------- */
+
+// Finds the customer's own order. Returns its row and how many models it has.
+function findOwnOrder_(user, orderId) {
+  if (!/^EX[A-Z0-9]{4,12}$/.test(String(orderId || ''))) return null;
+  const sh = sheet_(ORDERS);
+  const last = lastRow_(sh);
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, 8).getValues();
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (String(rows[i][0]) === orderId) {
+      if (String(rows[i][3]).toLowerCase() !== user.email) return null;
+      return { sheet: sh, row: i + 2, items: String(rows[i][7]).split('\n').filter(String).length };
+    }
+  }
+  return null;
+}
+
+// Starts saving one model file to the STL files folder, named after the order.
+function fileStart_(user, body) {
+  const order = findOwnOrder_(user, body.orderId);
+  if (!order) return { ok: false, error: 'order_not_found' };
+  const index = Math.floor(Number(body.index));
+  const size = Math.floor(Number(body.size));
+  if (!(index >= 0 && index < order.items)) return { ok: false, error: 'bad_file' };
+  if (!(size > 84 && size <= MAX_FILE_BYTES)) return { ok: false, error: 'file_too_large' };
+
+  const name = body.orderId + (order.items > 1 ? '-' + (index + 1) : '') + '.stl';
+  DriveApp.getFolderById(STL_FOLDER_ID); // also gives this script permission to use Drive
+
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
+    method: 'post',
+    contentType: 'application/json; charset=UTF-8',
+    headers: {
+      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+      'X-Upload-Content-Type': 'application/octet-stream',
+      'X-Upload-Content-Length': String(size)
+    },
+    payload: JSON.stringify({ name: name, parents: [STL_FOLDER_ID], description: 'Extrudo order ' + body.orderId + ', model ' + (index + 1) }),
+    muteHttpExceptions: true
+  });
+  const uri = res.getHeaders()['Location'] || res.getHeaders()['location'];
+  if (res.getResponseCode() !== 200 || !uri) return { ok: false, error: 'upload_failed' };
+
+  CacheService.getScriptCache().put(uploadKey_(body.orderId, index), JSON.stringify({ uri: uri, size: size, name: name, email: user.email }), 21600);
+  return { ok: true, chunkSize: CHUNK_BYTES, name: name };
+}
+
+// Receives one 8 MB piece of a file and passes it on to Drive.
+function fileChunk_(user, body) {
+  const index = Math.floor(Number(body.index));
+  const key = uploadKey_(body.orderId, index);
+  const saved = CacheService.getScriptCache().get(key);
+  if (!saved) return { ok: false, error: 'upload_expired' };
+  const up = JSON.parse(saved);
+  if (up.email !== user.email) return { ok: false, error: 'order_not_found' };
+
+  const offset = Math.floor(Number(body.offset));
+  const bytes = Utilities.base64Decode(String(body.data || ''));
+  const end = offset + bytes.length;
+  if (!(offset >= 0) || !bytes.length || end > up.size) return { ok: false, error: 'bad_file' };
+  if (end < up.size && bytes.length % (256 * 1024) !== 0) return { ok: false, error: 'bad_file' };
+
+  const res = UrlFetchApp.fetch(up.uri, {
+    method: 'put',
+    contentType: 'application/octet-stream',
+    headers: { 'Content-Range': 'bytes ' + offset + '-' + (end - 1) + '/' + up.size },
+    payload: bytes,
+    muteHttpExceptions: true
+  });
+  const code = res.getResponseCode();
+  if (code === 308) {
+    const range = res.getHeaders()['Range'] || res.getHeaders()['range'] || '';
+    const m = /bytes=0-(\d+)/.exec(range);
+    return { ok: true, done: false, received: m ? Number(m[1]) + 1 : end };
+  }
+  if (code !== 200 && code !== 201) return { ok: false, error: 'upload_failed' };
+
+  const file = JSON.parse(res.getContentText());
+  CacheService.getScriptCache().remove(key);
+  locked_(function () {
+    const order = findOwnOrder_(user, body.orderId);
+    if (order) addFileLink_(order.sheet, order.row, up.name, 'https://drive.google.com/file/d/' + file.id + '/view');
+  });
+  return { ok: true, done: true, name: up.name };
+}
+
+function uploadKey_(orderId, index) {
+  return 'up:' + orderId + ':' + index;
+}
+
+// Adds a linked file name on a new line in the order's "Model files" cell.
+function addFileLink_(sh, row, name, url) {
+  const cell = sh.getRange(row, FILES_COLUMN);
+  const old = cell.getRichTextValue();
+  const oldText = old ? old.getText() : '';
+  const text = oldText ? oldText + '\n' + name : name;
+  const b = SpreadsheetApp.newRichTextValue().setText(text);
+  if (old) old.getRuns().forEach(function (r) {
+    const u = r.getLinkUrl();
+    if (u) b.setLinkUrl(r.getStartIndex(), r.getEndIndex(), u);
+  });
+  b.setLinkUrl(text.length - name.length, text.length, url);
+  cell.setRichTextValue(b.build());
 }
 
 /* ---------- Helpers ---------- */

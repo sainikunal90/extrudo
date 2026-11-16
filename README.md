@@ -25,7 +25,7 @@ The site has two modes, set by `LIVE_CONFIG` near the top of the script in `inde
 - **Demo mode** (both values empty): accounts, carts and orders stay in the visitor's browser.
 - **Live mode** (both values filled in): customers sign in with Google, and every new customer and order is saved to the "Extrudo Customers and Orders" sheet in the owner's Google Drive. The Orders page shows each order's payment status, order status and tracking number as the owner updates them in the sheet.
 
-`apps-script/Code.gs` is the small Google Apps Script that receives orders. It checks every request's Google sign-in token with Google and uses the email inside the token, so a customer can only add their own orders and read their own orders. Guests cannot send anything. Customers never see the sheet itself.
+`apps-script/Code.gs` is the small Google Apps Script that receives orders and model files. It checks every request's Google sign-in token with Google and uses the email inside the token, so a customer can only add their own orders and read their own orders. Guests cannot send anything. Customers never see the sheet itself.
 
 ### Turning on live mode
 
@@ -35,7 +35,7 @@ The site has two modes, set by `LIVE_CONFIG` near the top of the script in `inde
 
 ## Limits of this version
 
-- Carts stay in the visitor's browser until they check out, and uploaded STL files are not sent anywhere yet.
+- Carts stay in the visitor's browser until they check out. Each model's STL file waits in the browser too, then goes to the Extrudo > STL files folder in Drive after the order is placed, named with the order ID (EX1234AB.stl, or EX1234AB-2.stl for the second model). Files over 100 MB are refused. The customer must keep the page open until the files finish; if they close it early, the upload continues next time they open the site.
 - UPI payments are checked by hand against the reference number. Orders arrive as "Payment being checked", and the total in the sheet is what the customer's browser worked out, so check the payment and the price before printing.
 
 ## Publishing with GitHub Pages
