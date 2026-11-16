@@ -1287,7 +1287,7 @@ body:not(.live) .live-only{display:none!important}
     } catch (e) { const err = new Error('network'); err.code = 'network'; throw err; }
     let data = null;
     try { data = await res.json(); } catch (e) { data = null; }
-    if (!data || !data.ok) { const err = new Error('api'); err.code = (data && data.error) || 'server_error'; throw err; }
+    if (!data || !data.ok) { const err = new Error('api'); err.code = (data && data.error) || 'server_error'; err.status = data && data.status; err.detail = data && data.detail; throw err; }
     return data;
   }
 
@@ -1405,6 +1405,7 @@ body:not(.live) .live-only{display:none!important}
             if (f.kind === 'upload') idb.del(f.key).catch(() => {});
           } catch (e) {
             st.state = e.code === 'not_signed_in' ? 'signin' : 'failed';
+            st.code = (e.code || 'unknown') + (e.status ? ' ' + e.status : ''); st.detail = e.detail || '';
             if (e.code === 'not_signed_in') { liveToken = null; store.del(K_TOKEN); }
           }
           renderUploads();
@@ -1433,7 +1434,7 @@ body:not(.live) .live-only{display:none!important}
           if (f.done || st.state === 'done') right = '<span class="up-state ok">Uploaded</span>';
           else if (st.state === 'uploading') { right = `<span class="up-state">${st.pct || 0}%</span>`; bar = `<div class="up-bar"><i style="width:${st.pct || 0}%"></i></div>`; }
           else if (st.state === 'missing') right = `<span class="up-state bad">Not in this browser <button type="button" class="btn ghost sm" data-refile="${esc(upKey(j.orderId, f.index))}">Choose file</button></span>`;
-          else if (st.state === 'failed') right = `<span class="up-state bad">Didn’t upload <button type="button" class="btn ghost sm" data-retry>Try again</button></span>`;
+          else if (st.state === 'failed') { right = `<span class="up-state bad">Didn’t upload (${esc(st.code || 'unknown')}) <button type="button" class="btn ghost sm" data-retry>Try again</button></span>`; if (st.detail) bar = `<span class="help" style="grid-column:1/-1">${esc(st.detail)}</span>`; }
           else if (st.state === 'signin') right = '<span class="up-state bad">Sign in again</span>';
           return `<li class="up-row"><span>${esc(f.name)}</span>${right}${bar}</li>`;
         }).join('')}</ul>

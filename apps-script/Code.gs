@@ -234,7 +234,7 @@ function fileStart_(user, body) {
     muteHttpExceptions: true
   });
   const uri = res.getHeaders()['Location'] || res.getHeaders()['location'];
-  if (res.getResponseCode() !== 200 || !uri) return { ok: false, error: 'upload_failed' };
+  if (res.getResponseCode() !== 200 || !uri) return driveFailure_('Drive upload start', res);
 
   CacheService.getScriptCache().put(uploadKey_(body.orderId, index), JSON.stringify({ uri: uri, size: size, name: name, email: user.email }), 21600);
   return { ok: true, chunkSize: CHUNK_BYTES, name: name };
@@ -268,7 +268,7 @@ function fileChunk_(user, body) {
     const m = /bytes=0-(\d+)/.exec(range);
     return { ok: true, done: false, received: m ? Number(m[1]) + 1 : end };
   }
-  if (code !== 200 && code !== 201) return { ok: false, error: 'upload_failed' };
+  if (code !== 200 && code !== 201) return driveFailure_('Drive upload piece', res);
 
   const file = JSON.parse(res.getContentText());
   CacheService.getScriptCache().remove(key);
@@ -277,6 +277,15 @@ function fileChunk_(user, body) {
     if (order) addFileLink_(order.sheet, order.row, up.name, 'https://drive.google.com/file/d/' + file.id + '/view');
   });
   return { ok: true, done: true, name: up.name };
+}
+
+// Logs Drive's answer (see Executions in Apps Script) and passes a short reason back.
+function driveFailure_(step, res) {
+  const text = res.getContentText();
+  console.error(step + ' failed: ' + res.getResponseCode() + ' ' + text.slice(0, 500));
+  let detail = '';
+  try { detail = JSON.parse(text).error.message; } catch (err) { detail = text; }
+  return { ok: false, error: 'upload_failed', status: res.getResponseCode(), detail: String(detail).slice(0, 200) };
 }
 
 function uploadKey_(orderId, index) {
