@@ -18,12 +18,25 @@ The prices live in the `price-data` block near the end of `index.html`, as rows 
 
 The "Update prices from sheet" button only appears when the site is opened inside Claude, so it does not show on GitHub Pages.
 
+## Sign-in and orders
+
+The site has two modes, set by `LIVE_CONFIG` near the top of the script in `index.html`.
+
+- **Demo mode** (both values empty): accounts, carts and orders stay in the visitor's browser.
+- **Live mode** (both values filled in): customers sign in with Google, and every new customer and order is saved to the "Extrudo Customers and Orders" sheet in the owner's Google Drive. The Orders page shows each order's payment status, order status and tracking number as the owner updates them in the sheet.
+
+`apps-script/Code.gs` is the small Google Apps Script that receives orders. It checks every request's Google sign-in token with Google and uses the email inside the token, so a customer can only add their own orders and read their own orders. Guests cannot send anything. Customers never see the sheet itself.
+
+### Turning on live mode
+
+1. **Google sign-in (free).** In the Google Cloud console, create a project called Extrudo. Under APIs & Services, set up the OAuth consent screen as External, with the app name Extrudo. Then go to Credentials, choose Create credentials, then OAuth client ID, then Web application. Under Authorized JavaScript origins add `https://sainikunal90.github.io`, and copy the Client ID.
+2. **The order script.** Open the "Extrudo Customers and Orders" sheet, then Extensions, then Apps Script. Replace the contents of `Code.gs` with `apps-script/Code.gs` from this repository, and paste the Client ID into `GOOGLE_CLIENT_ID`. Click Deploy, then New deployment, choose Web app, set "Execute as" to Me and "Who has access" to Anyone, and deploy. Google asks you to authorise your own script; choose Advanced, then "Go to Extrudo". Copy the Web app URL.
+3. **The website.** Put the Client ID and the Web app URL into `LIVE_CONFIG` in `index.html` and commit.
+
 ## Limits of this version
 
-- Accounts, carts, saved addresses and orders are stored in each visitor's own browser. The shop owner does not receive orders, and uploaded STL files are not sent anywhere.
-- UPI payments are checked by hand against the reference number.
-
-A real launch needs a small backend to store orders and files, and optionally a payment gateway to confirm UPI payments automatically.
+- Carts stay in the visitor's browser until they check out, and uploaded STL files are not sent anywhere yet.
+- UPI payments are checked by hand against the reference number. Orders arrive as "Payment being checked", and the total in the sheet is what the customer's browser worked out, so check the payment and the price before printing.
 
 ## Publishing with GitHub Pages
 

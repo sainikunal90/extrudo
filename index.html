@@ -321,6 +321,14 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
 .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .toast button{background:none;border:0;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;white-space:nowrap}
 
+/* Live site: Google sign-in replaces the demo accounts */
+body.live .demo-only{display:none!important}
+body:not(.live) .live-only{display:none!important}
+.gbtn{display:flex;justify-content:center;min-height:44px;margin-top:18px}
+.signin-note{margin:12px 0 0;font-size:.86rem;color:var(--muted);text-align:center}
+.status-row{display:flex;gap:6px;flex-wrap:wrap}
+.badge.muted{background:var(--surface-2);color:var(--muted)}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -509,7 +517,8 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
 <footer class="foot">
   <div class="wrap">
     <p id="footText">Extrudo prints parts to order in Gurgaon, India.</p>
-    <p>This is a sample site. Accounts, carts and orders are stored only in this browser, and UPI payments are checked by hand.</p>
+    <p class="demo-only">This is a sample site. Accounts, carts and orders are stored only in this browser, and UPI payments are checked by hand.</p>
+    <p class="live-only">Sign in with Google to check out. Your cart stays in this browser until you order, and UPI payments are checked by hand before printing.</p>
   </div>
 </footer>
 
@@ -525,25 +534,28 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
     <div data-pane="welcome">
       <svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="19" width="24" height="6" rx="1.5" fill="var(--plate)"/><rect x="6" y="12" width="16" height="6" rx="1.5" fill="var(--ink)"/><rect x="10" y="5" width="8" height="6" rx="1.5" fill="var(--accent)"/></svg>
       <h2 id="welcomeTitle">Welcome to Extrudo</h2>
-      <p class="sub">Price any 3D print in seconds. Browse, estimate and fill your cart as a guest, then log in when you check out.</p>
+      <p class="sub demo-only">Price any 3D print in seconds. Browse, estimate and fill your cart as a guest, then log in when you check out.</p>
+      <p class="sub live-only">Price any 3D print in seconds. Browse, estimate and fill your cart as a guest, then sign in with Google when you check out.</p>
       <div class="stack">
-        <button class="btn primary" type="button" data-go="login">Log in</button>
-        <button class="btn ghost" type="button" data-go="signup">Create account</button>
+        <button class="btn primary" type="button" data-go="login"><span class="demo-only">Log in</span><span class="live-only">Sign in with Google</span></button>
+        <button class="btn ghost demo-only" type="button" data-go="signup">Create account</button>
         <button class="btn text" type="button" data-guest>Continue as guest</button>
       </div>
     </div>
 
     <div data-pane="login" hidden>
-      <h2 id="loginTitle">Log in</h2>
+      <h2 id="loginTitle"><span class="demo-only">Log in</span><span class="live-only">Sign in</span></h2>
       <p class="sub" data-reason></p>
-      <form id="loginForm" novalidate>
+      <div class="gbtn live-only" id="gBtn"></div>
+      <p class="signin-note live-only" id="gNote">We use your Google name and email only to manage your orders.</p>
+      <form id="loginForm" class="demo-only" novalidate>
         <div class="input"><label for="liEmail">Email</label><input id="liEmail" type="email" autocomplete="email" required></div>
         <div class="input"><label for="liPass">Password</label><input id="liPass" type="password" autocomplete="current-password" required></div>
         <p class="err" id="liErr" role="alert"></p>
         <button class="btn primary" type="submit">Log in</button>
       </form>
-      <div class="demo"><span>Demo account: demo@extrudo.in, password print123</span><button class="btn text" type="button" id="fillDemo">Use it</button></div>
-      <div class="alt"><button class="btn text" type="button" data-go="signup">Create an account</button><button class="btn text" type="button" data-guest>Continue as guest</button></div>
+      <div class="demo demo-only"><span>Demo account: demo@extrudo.in, password print123</span><button class="btn text" type="button" id="fillDemo">Use it</button></div>
+      <div class="alt"><button class="btn text demo-only" type="button" data-go="signup">Create an account</button><button class="btn text" type="button" data-guest>Continue as guest</button></div>
     </div>
 
     <div data-pane="signup" hidden>
@@ -559,7 +571,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
       <div class="alt"><button class="btn text" type="button" data-go="login">I already have an account</button><button class="btn text" type="button" data-guest>Continue as guest</button></div>
     </div>
 
-    <p class="fine">This is a demo. Accounts, carts and orders are saved only in this browser.</p>
+    <p class="fine demo-only">This is a demo. Accounts, carts and orders are saved only in this browser.</p>
   </div>
 </div>
 
@@ -580,7 +592,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
   const RESET_SRC = (function () {
     const st = document.head && document.head.querySelector('style');
     const t = st ? st.textContent : '';
-    return /safe-area-inset/.test(t) ? t : ':root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}';
+    return /safe-area-inset/.test(t) ? t : ':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}';
   })();
   const PAGE_HEAD = '<title>Extrudo</title><meta name="claude:viewport-fit-sides" content="cover"><meta name="description" content="Instant 3D printing estimates and orders from Extrudo, Gurgaon."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&display=swap">';
   const CDN_TAGS = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"><\/script>';
@@ -589,6 +601,14 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
   const SHEET_ID = '1cWLCh_2Ead388qhd6jEJeEdk5E3iSkTQjY0CxOa3Rac';
   const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit';
   const UPI = { id: 'cosmicwave@ptyes', name: 'Kunal Saini' };
+
+  /* Live site settings. With both filled in, and outside Claude, customers sign in
+     with Google and orders go to the "Extrudo Customers and Orders" sheet. */
+  const LIVE_CONFIG = {
+    googleClientId: '',
+    apiUrl: ''
+  };
+  const LIVE = !!(LIVE_CONFIG.googleClientId && LIVE_CONFIG.apiUrl) && !(window.claude && window.claude.use);
   const PHYS = { shellMm: 1.2, warmup: 300, perLayer: 1.5, build: [256, 256, 256] };
   const MAT_INFO = {
     PLA: { density: 1.24, speed: 1, sub: 'Everyday parts' },
@@ -650,6 +670,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
     del(k) { delete mem['s:' + k]; try { sessionStorage.removeItem(k); } catch (e) {} }
   };
   const K_USERS = 'extrudo.users', K_SESSION = 'extrudo.session', K_GUEST = 'extrudo.guest';
+  const K_PROFILE = 'extrudo.profile', K_TOKEN = 'extrudo.gtoken';
 
   /* ---------- Prices from the owner's Google Sheet ---------- */
   let PRICE_DATA = { rows: [], syncedAt: null };
@@ -1166,11 +1187,11 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
       box.innerHTML = `<button type="button" class="acct" id="acctBtn" aria-haspopup="true" aria-expanded="false"><span class="avatar" aria-hidden="true">${esc(first.charAt(0).toUpperCase())}</span><span>${esc(first)}</span></button>
         <div class="menu" id="acctMenu" hidden><p class="menu-who"><strong>${esc(state.user.name)}</strong><span>${esc(state.user.email)}</span></p><a href="#orders" class="menu-item">Your orders</a><button type="button" class="menu-item" id="logoutBtn">Log out</button></div>`;
     } else {
-      box.innerHTML = '<span class="guest-chip">Guest</span><button type="button" class="btn primary sm" data-auth="login">Log in</button>';
+      box.innerHTML = `<span class="guest-chip">Guest</span><button type="button" class="btn primary sm" data-auth="login">${LIVE ? 'Sign in' : 'Log in'}</button>`;
     }
     $('#accountNote').textContent = state.user
       ? `Logged in as ${state.user.name}. Add as many models as you like, then check out once.`
-      : 'Estimates are free. Fill your cart as a guest and log in when you check out.';
+      : `Estimates are free. Fill your cart as a guest and ${LIVE ? 'sign in with Google' : 'log in'} when you check out.`;
     updateCartCount();
   }
   function closeMenu() { const m = $('#acctMenu'), b = $('#acctBtn'); if (m) m.hidden = true; if (b) b.setAttribute('aria-expanded', 'false'); }
@@ -1179,7 +1200,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
   function signIn(email, name) {
     const guestCart = store.get('extrudo.cart.guest', []);
     state.user = { email, name };
-    store.set(K_SESSION, email);
+    if (LIVE) store.set(K_PROFILE, { email, name }); else store.set(K_SESSION, email);
     if (guestCart.length) { setCart(getCart().concat(guestCart)); store.del('extrudo.cart.guest'); }
     const act = pendingAction; pendingAction = null;
     closeModal();
@@ -1191,19 +1212,69 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
   function logout() {
     closeMenu();
     state.user = null; store.del(K_SESSION); sess.set(K_GUEST, '1');
+    if (LIVE) { store.del(K_PROFILE); store.del(K_TOKEN); liveToken = null; try { google.accounts.id.disableAutoSelect(); } catch (e) {} }
     state.co = { step: 1, addrId: null, pin: '', ref: null, address: null };
     renderWho();
     if (state.view === 'checkout') location.hash = '#cart'; else rerenderView();
     toast('Logged out. You’re browsing as a guest.');
   }
   function requireLogin(reason, action) {
-    if (state.user) { action(); return; }
+    if (state.user && (!LIVE || tokenValid())) { action(); return; }
     pendingAction = action;
-    openModal('login', reason);
+    openModal('login', state.user && LIVE ? 'Your sign-in has expired. Sign in with Google again to continue. Your cart stays as it is.' : reason);
+  }
+
+  /* ---------- Google sign-in and the order sheet (live site) ---------- */
+  let liveToken = null, gisReady = false;
+  const tokenValid = () => !!(liveToken && liveToken.token && liveToken.exp * 1000 > Date.now() + 60000);
+  function decodeJwt(t) {
+    try {
+      let b = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      const bin = atob(b);
+      return JSON.parse(decodeURIComponent(Array.from(bin, c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+    } catch (e) { return null; }
+  }
+  function loadGoogle() {
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.defer = true;
+    sc.onload = () => {
+      try {
+        google.accounts.id.initialize({ client_id: LIVE_CONFIG.googleClientId, callback: onGoogleCredential, ux_mode: 'popup', auto_select: false, cancel_on_tap_outside: true });
+        gisReady = true;
+        if (!$('#modalBack').hidden) renderGoogleButton();
+      } catch (e) { googleFailed(); }
+    };
+    sc.onerror = googleFailed;
+    document.head.appendChild(sc);
+  }
+  function googleFailed() { const n = $('#gNote'); if (n) n.textContent = 'Google sign-in didn’t load. Check your connection and refresh the page.'; }
+  function renderGoogleButton() {
+    const box = $('#gBtn'); if (!box || !gisReady) return;
+    box.innerHTML = '';
+    google.accounts.id.renderButton(box, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: Math.min(320, box.clientWidth || 320) });
+  }
+  function onGoogleCredential(resp) {
+    const p = decodeJwt(resp && resp.credential);
+    if (!p || !p.email) { toast('Google sign-in didn’t work. Try again.'); return; }
+    liveToken = { token: resp.credential, exp: p.exp };
+    store.set(K_TOKEN, liveToken);
+    signIn(String(p.email).toLowerCase(), p.name || String(p.email).split('@')[0]);
+    api('signin').catch(() => {});
+  }
+  async function api(action, payload) {
+    let res;
+    try {
+      res = await fetch(LIVE_CONFIG.apiUrl, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken: liveToken && liveToken.token }, payload || {})) });
+    } catch (e) { const err = new Error('network'); err.code = 'network'; throw err; }
+    let data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (!data || !data.ok) { const err = new Error('api'); err.code = (data && data.error) || 'server_error'; throw err; }
+    return data;
   }
 
   /* ---------- Modal ---------- */
-  const DEFAULT_REASON = { login: 'Log in to check out and see your orders.', signup: 'An account keeps your cart, addresses and orders together.' };
+  const DEFAULT_REASON = { login: LIVE ? 'Sign in with Google to check out and follow your orders.' : 'Log in to check out and see your orders.', signup: 'An account keeps your cart, addresses and orders together.' };
   function openModal(pane, reason) {
     closeMenu();
     $$('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== pane; });
@@ -1213,6 +1284,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
     $('#liErr').textContent = ''; $('#suErr').textContent = '';
     $('#modalBack').hidden = false;
     document.body.classList.add('modal-open');
+    if (LIVE && pane === 'login') renderGoogleButton();
     if (!coarse) {
       const f = $(`[data-pane="${pane}"] input`) || $(`[data-pane="${pane}"] .btn.primary`);
       setTimeout(() => f && f.focus({ preventScroll: true }), 40);
@@ -1372,6 +1444,36 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
       shipping: t.ship ? { label: `${t.ship.count > 1 ? t.ship.count + ' boxes' : '1 box'} up to ${t.ship.box.cm.join(' × ')} cm`, amount: t.ship.boxAmount, remote: t.ship.remote } : null,
       total: t.total, address: state.co.address, arriveBy: t.arrive ? t.arrive.getTime() : null
     };
+    if (LIVE) { sendOrder(order); return; }
+    finishOrder(order);
+  }
+  async function sendOrder(order) {
+    if (!tokenValid()) { requireLogin('', placeOrder); return; }
+    const btn = $('#payForm button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Placing order…';
+    $('#payErr').textContent = '';
+    try {
+      const a = order.address;
+      await api('order', { order: {
+        id: order.id, utr: order.utr, items: order.items,
+        subtotal: order.subtotal, setup: order.setup, topUp: order.topUp,
+        shipping: order.shipping ? order.shipping.amount : 0, remote: order.shipping ? order.shipping.remote : 0,
+        address: { name: a.name, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, pin: a.pin },
+        arriveBy: order.arriveBy, saveAddress: !!state.co.saveAddr
+      } });
+      finishOrder(order);
+    } catch (e) {
+      const c = e.code;
+      if (c === 'not_signed_in') { liveToken = null; store.del(K_TOKEN); requireLogin('', placeOrder); }
+      else if (c === 'bad_utr') $('#payErr').textContent = 'That UPI reference number wasn’t accepted. Check the 12 digits and try again.';
+      else if (c === 'bad_address') $('#payErr').textContent = 'Check the mobile number and pincode in your address, then try again.';
+      else if (c === 'too_many_requests') $('#payErr').textContent = 'Too many attempts in a short time. Wait a few minutes, then place the order again.';
+      else $('#payErr').textContent = 'Your order couldn’t be saved. Check your connection and try again. Your payment details are still here.';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Place order';
+    }
+  }
+  function finishOrder(order) {
     const orders = getOrders(); orders.unshift(order); setOrders(orders);
     setCart([]);
     state.justPlaced = order.id;
@@ -1388,6 +1490,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
         <div class="row-btns"><button type="button" class="btn primary" data-auth="login">Log in</button><button type="button" class="btn ghost" data-auth="signup">Create account</button></div></div>`;
       return;
     }
+    if (LIVE) { renderLiveOrders(box); return; }
     const orders = getOrders();
     if (!orders.length) {
       box.innerHTML = '<div class="empty"><h3>No orders yet</h3><p>Add models to your cart and check out. Your orders will show here.</p><a class="btn primary" href="#estimate">Get an estimate</a></div>';
@@ -1409,6 +1512,37 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
         </ul></details>
       </article>`;
     }).join('') + '</div>';
+  }
+
+  function placedBanner() {
+    return state.justPlaced ? `<div class="banner" role="status"><strong>Order ${esc(state.justPlaced)} placed.</strong>We’ll match your UPI payment and confirm by email within a day. Printing starts once the payment is confirmed.</div>` : '';
+  }
+  function liveOrderCard(o) {
+    const items = String(o.items || '').split('\n').filter(Boolean);
+    const notes = [o.tracking ? `Tracking number ${esc(o.tracking)}.` : '', o.expected ? `Expected by ${esc(fmtDay(new Date(o.expected)))}.` : ''].filter(Boolean).join(' ');
+    return `<article class="q">
+        <div class="q-top"><div><div class="q-name">Order ${esc(o.id)}</div><div class="q-meta">${o.placedAt ? 'Placed ' + fmtDate(o.placedAt) + ', ' : ''}${o.pieces} ${o.pieces > 1 ? 'pieces' : 'piece'}</div></div><div class="q-total">${inr(o.total || 0)}</div></div>
+        ${notes ? `<p class="q-spec">${notes}</p>` : ''}
+        <div class="q-foot"><div class="status-row"><span class="badge${o.payment === 'Paid' ? ' ok' : ''}">${esc(o.payment || 'Payment being checked')}</span><span class="badge muted">${esc(o.status || 'New')}</span></div><span class="q-meta">UPI reference ${esc(o.utr || '')}</span></div>
+        <details><summary>Items</summary><ul class="mini">${items.map(i => `<li><span>${esc(i)}</span></li>`).join('')}</ul></details>
+      </article>`;
+  }
+  function renderLiveOrders(box) {
+    if (!tokenValid()) {
+      box.innerHTML = placedBanner() + `<div class="empty"><h3>Sign in to see your orders</h3><p>Your sign-in has expired. Sign in with Google again to see the latest status of your orders.</p><button type="button" class="btn primary" data-auth="login">Sign in with Google</button></div>`;
+      return;
+    }
+    box.innerHTML = placedBanner() + '<p class="help">Loading your orders…</p>';
+    api('orders').then(d => {
+      if (state.view !== 'orders') return;
+      const list = d.orders || [];
+      box.innerHTML = placedBanner() + (list.length ? '<div class="qlist">' + list.map(liveOrderCard).join('') + '</div>'
+        : '<div class="empty"><h3>No orders yet</h3><p>Add models to your cart and check out. Your orders will show here.</p><a class="btn primary" href="#estimate">Get an estimate</a></div>');
+    }).catch(e => {
+      if (state.view !== 'orders') return;
+      if (e.code === 'not_signed_in') { liveToken = null; store.del(K_TOKEN); renderLiveOrders(box); return; }
+      box.innerHTML = placedBanner() + '<div class="empty"><h3>Your orders couldn’t load</h3><p>Check your connection, then open this tab again.</p></div>';
+    });
   }
 
   /* ---------- Models gallery ---------- */
@@ -1660,7 +1794,7 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
     // Cart
     $('#cartBody').addEventListener('click', e => {
       if (e.target.closest('#checkoutBtn')) {
-        requireLogin('Log in to check out. Your cart stays as it is.', () => { state.co.step = 1; location.hash = '#checkout'; if (state.view === 'checkout') renderCheckout(); });
+        requireLogin(LIVE ? 'Sign in with Google to check out. Your cart stays as it is.' : 'Log in to check out. Your cart stays as it is.', () => { state.co.step = 1; location.hash = '#checkout'; if (state.view === 'checkout') renderCheckout(); });
         return;
       }
       const row = e.target.closest('[data-id]'); if (!row) return;
@@ -1687,7 +1821,8 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
       const r = readAddress(), err = $('#adErr');
       if (!r.ok) { err.textContent = r.error; const f = $(r.field); if (f) f.focus(); return; }
       err.textContent = '';
-      if (r.isNew && $('#adSave').checked) { const a = getAddrs(); a.unshift(r.address); setAddrs(a.slice(0, 5)); state.co.addrId = r.address.id; }
+      state.co.saveAddr = !!(r.isNew && $('#adSave').checked);
+      if (state.co.saveAddr) { const a = getAddrs(); a.unshift(r.address); setAddrs(a.slice(0, 5)); state.co.addrId = r.address.id; }
       state.co.address = r.address;
       state.co.step = 2;
       state.co.totals = cartTotals(getCart(), r.address.pin);
@@ -1712,8 +1847,16 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
   /* ---------- Boot ---------- */
   function boot() {
     demoReady = seedDemo();
-    const email = store.get(K_SESSION, null), users = store.get(K_USERS, {});
-    if (email && users[email]) state.user = { email, name: users[email].name };
+    if (LIVE) {
+      document.body.classList.add('live');
+      const prof = store.get(K_PROFILE, null);
+      if (prof && prof.email) state.user = { email: prof.email, name: prof.name || prof.email };
+      liveToken = store.get(K_TOKEN, null);
+      loadGoogle();
+    } else {
+      const email = store.get(K_SESSION, null), users = store.get(K_USERS, {});
+      if (email && users[email]) state.user = { email, name: users[email].name };
+    }
 
     buildOptions();
     bind();
