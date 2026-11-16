@@ -30,7 +30,7 @@ The site has two modes, set by `LIVE_CONFIG` near the top of the script in `inde
 ### Turning on live mode
 
 1. **Google sign-in (free).** In the Google Cloud console, create a project called Extrudo. Under APIs & Services, set up the OAuth consent screen as External, with the app name Extrudo. Then go to Credentials, choose Create credentials, then OAuth client ID, then Web application. Under Authorized JavaScript origins add `https://sainikunal90.github.io`, and copy the Client ID.
-2. **The order script.** Open the "Extrudo Customers and Orders" sheet, then Extensions, then Apps Script. Replace the contents of `Code.gs` with `apps-script/Code.gs` from this repository, (the Client ID is already filled in). Click Deploy, then New deployment, choose Web app, set "Execute as" to Me and "Who has access" to Anyone, and deploy. Google asks you to authorise your own script; choose Advanced, then "Go to Extrudo". Copy the Web app URL.
+2. **The order script.** Open the "Extrudo Customers and Orders" sheet, then Extensions, then Apps Script. Replace the contents of `Code.gs` with `apps-script/Code.gs` from this repository. The Client ID is already filled in. Click Deploy, then New deployment, choose Web app, set "Execute as" to Me and "Who has access" to Anyone, and deploy. Google asks you to authorise your own script; choose Advanced, then "Go to Extrudo". Copy the Web app URL.
 3. **The website.** Put the Client ID and the Web app URL into `LIVE_CONFIG` in `index.html` and commit.
 
 ## Limits of this version
