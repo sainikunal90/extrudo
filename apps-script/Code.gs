@@ -6,8 +6,10 @@
  * Deploy > New deployment > Web app, with "Execute as: Me" and
  * "Who has access: Anyone".
  *
- * For every new order, the script also emails NOTIFY_EMAIL (or, if that is
- * empty, the account the script runs as) with the order's details.
+ * For every new order, the script emails NOTIFY_EMAIL (or, if that is
+ * empty, the account the script runs as) with the order's details, and
+ * emails the customer a confirmation. Run turnOnPaymentEmails once to also
+ * email customers when you set an order's Payment status to Paid.
  *
  * After changing this file, publish it with Deploy > Manage deployments >
  * pencil icon > Version: New version > Deploy. That keeps the same web app
@@ -41,6 +43,9 @@ const SITE_ORIGIN = 'https://sainikunal90.github.io';
 // as. Gmail doesn't notify you about mail you send to yourself, so put a
 // different address here if you want a phone notification.
 const NOTIFY_EMAIL = '';
+
+const SITE_URL = SITE_ORIGIN + '/extrudo/';
+const PAYMENT_COLUMN = 17;                  // column Q, "Payment status"
 
 const USERS = 'Users';
 const ORDERS = 'Orders';
@@ -198,12 +203,13 @@ function addOrder_(user, o) {
 
   upsertUser_(user, o.saveAddress ? { phone: phone, addressText: addressText, pin: pin } : { phone: phone });
 
-  notifyOwner_({
+  const mail = {
     id: id, row: row, name: clean_(a.name, 120), email: user.email, phone: phone,
     address: addressText + ' ' + pin, lines: lines, pieces: pieces, amounts: amounts,
     utr: String(o.utr), expected: expected
-  });
-  return { ok: true, id: id };
+  };
+  notifyOwner_(mail);
+  return { ok: true, id: id, customerEmailed: emailCustomerOrder_(mail) };
 }
 
 /* ---------- Email to the shop owner ---------- */
@@ -293,6 +299,126 @@ function listOrders_(user) {
     .reverse()
     .slice(0, 50);
   return { ok: true, orders: orders };
+}
+
+/* ---------- Customer emails ---------- */
+
+// Customer emails always go to the address in the customer's Google sign-in
+// (or, for payment emails, the Email column), never to an address typed into
+// the website, so nobody can use the site to email someone else.
+
+function escHtml_(v) {
+  return String(v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+}
+function rupees_(n) {
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
+function dayText_(d) {
+  return d instanceof Date && !isNaN(d) ? Utilities.formatDate(d, 'Asia/Kolkata', 'EEE d MMM') : '';
+}
+
+// Sends one customer email in the shop's plain style. rows are [label, text]
+// pairs; a label starting with * is shown in bold.
+function sendCustomerEmail_(to, subject, heading, intro, rows) {
+  const ordersLink = SITE_URL + '#orders';
+  const clean = rows.filter(function (r) { return r[1] !== '' && r[1] !== null && r[1] !== undefined; });
+  const label = function (k) { return k.replace(/^\*/, ''); };
+  const text = [heading, '', intro, '']
+    .concat(clean.map(function (r) { return label(r[0]) + ': ' + String(r[1]).split('\n').join('\n  '); }))
+    .concat(['', 'Follow your order: ' + ordersLink, 'Questions? Reply to this email.', '', 'Extrudo, 3D printing in Gurgaon'])
+    .join('\n');
+  const cell = function (r) {
+    const bold = r[0].charAt(0) === '*';
+    const v = escHtml_(r[1]).split('\n').join('<br>');
+    return '<tr><td style="padding:5px 18px 5px 0;color:#5A6472;vertical-align:top;white-space:nowrap">' + escHtml_(label(r[0])) + '</td>'
+      + '<td style="padding:5px 0">' + (bold ? '<b>' + v + '</b>' : v) + '</td></tr>';
+  };
+  const html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#18202B;max-width:600px">'
+    + '<p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#2448D8">Extrudo</p>'
+    + '<h2 style="margin:0 0 8px;font-size:20px">' + escHtml_(heading) + '</h2>'
+    + '<p style="margin:0 0 16px">' + escHtml_(intro) + '</p>'
+    + '<table style="border-collapse:collapse;margin:0 0 18px">' + clean.map(cell).join('') + '</table>'
+    + '<p style="margin:0 0 18px"><a href="' + ordersLink + '" style="display:inline-block;background:#2448D8;color:#FFFFFF;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">See your orders</a></p>'
+    + '<p style="margin:0;color:#5A6472">Questions? Reply to this email.<br>Extrudo, 3D printing in Gurgaon</p>'
+    + '</div>';
+  MailApp.sendEmail({ to: to, name: 'Extrudo', subject: subject, body: text, htmlBody: html });
+}
+
+// Confirms a new order to the customer. A failed email never stops the order.
+function emailCustomerOrder_(o) {
+  try {
+    const labels = ['Items', 'Setup fee', 'Minimum order top-up', 'Shipping', 'Remote area delivery'];
+    const total = o.amounts.reduce(function (t, n) { return t + n; }, 0);
+    const charges = o.amounts.map(function (n, i) { return [labels[i], n]; })
+      .filter(function (c, i) { return i < 2 || c[1] > 0; })
+      .map(function (c) { return [c[0], rupees_(c[1])]; });
+    sendCustomerEmail_(o.email,
+      'Extrudo order ' + o.id + ' received: ' + rupees_(total),
+      'We’ve received your order ' + o.id,
+      'Hi ' + o.name + ', thanks for your order. We’re now checking your UPI payment of ' + rupees_(total)
+        + ', and printing starts as soon as it’s confirmed, usually within a day.',
+      [['Order', o.id], ['Models', o.lines.join('\n')]].concat(charges).concat([
+        ['*Total', rupees_(total)],
+        ['UPI reference', o.utr],
+        ['Deliver to', o.name + '\n' + o.address + '\n' + o.phone],
+        ['Expected delivery', dayText_(o.expected) ? dayText_(o.expected) + ' (estimate)' : '']
+      ]));
+    return true;
+  } catch (err) {
+    console.error('Customer order email failed: ' + err);
+    return false;
+  }
+}
+
+/**
+ * Run this once from the Apps Script editor (choose it in the function list,
+ * then click Run). From then on, setting an order's Payment status to Paid in
+ * the sheet emails that customer. Running it again is harmless.
+ */
+function turnOnPaymentEmails() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'onOrderSheetEdit') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('onOrderSheetEdit').forSpreadsheet(SHEET_ID).onEdit().create();
+  console.log('Payment emails are on. Set an order\'s Payment status to Paid and the customer gets an email.');
+}
+
+// Runs when you edit the sheet. Only edits to the Payment status column matter.
+function onOrderSheetEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    const sh = e.range.getSheet();
+    if (sh.getName() !== ORDERS) return;
+    const first = e.range.getColumn(), last = first + e.range.getNumColumns() - 1;
+    if (PAYMENT_COLUMN < first || PAYMENT_COLUMN > last) return;
+    const top = e.range.getRow();
+    for (let r = Math.max(2, top); r < top + e.range.getNumRows(); r++) emailPaymentReceived_(sh, r);
+  } catch (err) {
+    console.error('Payment email failed: ' + err);
+  }
+}
+
+// Emails the customer once when their order is marked Paid.
+function emailPaymentReceived_(sh, row) {
+  const v = sh.getRange(row, 1, 1, 19).getValues()[0];
+  const id = String(v[0]);
+  if (String(v[PAYMENT_COLUMN - 1]) !== 'Paid' || !/^EX[A-Z0-9]{4,12}$/.test(id)) return;
+  const to = String(v[3]).trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return;
+  const props = PropertiesService.getScriptProperties();
+  const key = 'paidMail:' + id;
+  if (props.getProperty(key)) return;   // already told this customer
+
+  const total = [9, 10, 11, 12, 13].reduce(function (t, i) { return t + (Number(v[i]) || 0); }, 0);
+  const expected = dayText_(v[18]);
+  sendCustomerEmail_(to,
+    'Payment received for Extrudo order ' + id,
+    'Payment received, your order is in the print queue',
+    'Hi ' + String(v[2]) + ', we’ve matched your UPI payment of ' + rupees_(total) + ' for order ' + id
+      + '. It’s now in our print queue.',
+    [['Order', id], ['Models', String(v[7])], ['*Paid', rupees_(total)], ['UPI reference', String(v[15])],
+     ['Expected delivery', expected ? expected + ' (estimate)' : '']]);
+  props.setProperty(key, new Date().toISOString());
 }
 
 /* ---------- Model files ---------- */
