@@ -384,6 +384,73 @@ function addFileLink_(sh, row, name, url) {
   cell.setRichTextValue(b.build());
 }
 
+/* ---------- Upload self-test ---------- */
+
+/**
+ * Checks the model-file upload on its own. In the Apps Script editor, choose
+ * testDriveUpload in the function list at the top, click Run, then read the
+ * Execution log. It saves a small test file to the STL files folder exactly
+ * the way the website does, step by step, then moves it to the bin.
+ */
+function testDriveUpload() {
+  const step = function (name, ok, info) {
+    console.log((ok ? 'OK      ' : 'FAILED  ') + name + (info ? ': ' + info : ''));
+    return ok;
+  };
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(STL_FOLDER_ID);
+    step('1. Open the STL files folder', true, folder.getName());
+  } catch (err) {
+    return step('1. Open the STL files folder', false, String(err));
+  }
+
+  const size = 300 * 1024;
+  const bytes = [];
+  for (let i = 0; i < size; i++) bytes.push((i % 200) - 100);
+
+  const start = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
+    method: 'post',
+    contentType: 'application/json; charset=UTF-8',
+    headers: {
+      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+      'X-Upload-Content-Type': 'application/octet-stream',
+      'X-Upload-Content-Length': String(size)
+    },
+    payload: JSON.stringify({ name: 'EXTEST-upload-check.stl', parents: [STL_FOLDER_ID] }),
+    muteHttpExceptions: true
+  });
+  const uri = start.getHeaders()['Location'] || start.getHeaders()['location'];
+  if (!step('2. Start a Drive upload', start.getResponseCode() === 200 && !!uri,
+    start.getResponseCode() + ' ' + start.getContentText().slice(0, 300))) return;
+
+  const first = UrlFetchApp.fetch(uri, {
+    method: 'put', contentType: 'application/octet-stream',
+    headers: { 'Content-Range': 'bytes 0-262143/' + size },
+    payload: bytes.slice(0, 262144), muteHttpExceptions: true
+  });
+  if (!step('3. Send the first piece', first.getResponseCode() === 308,
+    first.getResponseCode() + ' ' + first.getContentText().slice(0, 300))) return;
+
+  const last = UrlFetchApp.fetch(uri, {
+    method: 'put', contentType: 'application/octet-stream',
+    headers: { 'Content-Range': 'bytes 262144-' + (size - 1) + '/' + size },
+    payload: bytes.slice(262144), muteHttpExceptions: true
+  });
+  if (!step('4. Send the last piece', last.getResponseCode() === 200 || last.getResponseCode() === 201,
+    last.getResponseCode() + ' ' + last.getContentText().slice(0, 300))) return;
+
+  const file = JSON.parse(last.getContentText());
+  step('5. File saved in STL files', true, file.name);
+  try {
+    DriveApp.getFileById(file.id).setTrashed(true);
+    step('6. Test file moved to the bin', true);
+  } catch (err) {
+    step('6. Move the test file to the bin', false, String(err));
+  }
+  console.log('Uploads to Drive work. If the website still says "Didn\'t upload", the website is calling an older version of this script.');
+}
+
 /* ---------- Helpers ---------- */
 
 function sheet_(name) {
