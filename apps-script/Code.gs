@@ -11,6 +11,10 @@
  * emails the customer a confirmation. Run turnOnPaymentEmails once to also
  * email customers when you set an order's Payment status to Paid.
  *
+ * It also runs the website's Shop: it reads the Shop, Settings and Prices
+ * tabs of the "Extrudo Pricing Controls" sheet, and saves the pictures the
+ * website makes of each Shop model.
+ *
  * After changing this file, publish it with Deploy > Manage deployments >
  * pencil icon > Version: New version > Deploy. That keeps the same web app
  * URL, so the website doesn't need changing.
@@ -45,6 +49,15 @@ const SITE_ORIGIN = 'https://sainikunal90.github.io';
 const NOTIFY_EMAIL = '';
 
 const SITE_URL = SITE_ORIGIN + '/extrudo/';
+
+// The "Extrudo Pricing Controls" sheet, with the Prices, Shop and Settings tabs.
+const PRICING_SHEET_ID = '1cWLCh_2Ead388qhd6jEJeEdk5E3iSkTQjY0CxOa3Rac';
+// Extrudo > Shop pictures (each picture is viewable by anyone with its link)
+// and Extrudo > Shop previews (private; sent to customers only while 3D spin is on).
+const SHOP_PICTURES_FOLDER_ID = '1AB-Z0HlvIb3wQVJnpaXPziseJv9PRKxr';
+const SHOP_PREVIEWS_FOLDER_ID = '16ELLyJyTMach9jkmEeKpQLb_wuLn-BEa';
+const SHOP_CACHE_SECONDS = 60;              // sheet changes reach the website within a minute
+const SHOP_READ_BYTES = 8 * 1024 * 1024;
 const PAYMENT_COLUMN = 17;                  // column Q, "Payment status"
 
 const USERS = 'Users';
@@ -52,7 +65,15 @@ const ORDERS = 'Orders';
 const FILES_COLUMN = 22;                    // column V, "Model files"
 const MAX_REQUESTS_PER_10_MIN = 40;
 
-function doGet() {
+function doGet(e) {
+  const action = e && e.parameter ? String(e.parameter.action || '') : '';
+  try {
+    if (action === 'shop') return json_(shopPublic_());
+    if (action === 'preview') return json_(shopPreview_(String(e.parameter.key || '')));
+  } catch (err) {
+    console.error(err);
+    return json_({ ok: false, error: 'server_error' });
+  }
   return json_({ ok: true, service: 'Extrudo orders' });
 }
 
@@ -69,9 +90,12 @@ function doPost(e) {
     const user = verifyGoogleToken_(body.idToken);
     if (!user) return json_({ ok: false, error: 'not_signed_in' });
     // File pieces and upload checks are limited by the file's size instead, so they skip this count.
-    if (body.action !== 'fileChunk' && body.action !== 'fileStatus' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
+    if (body.action !== 'fileChunk' && body.action !== 'fileStatus' && !isOwner_(user) && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
 
-    if (body.action === 'signin') return json_(locked_(function () { return upsertUser_(user, null); }));
+    if (body.action === 'signin') return json_(locked_(function () { return Object.assign(upsertUser_(user, null), { owner: isOwner_(user) }); }));
+    if (body.action === 'shopAdmin') return json_(shopAdmin_(user));
+    if (body.action === 'shopRead') return json_(shopRead_(user, body));
+    if (body.action === 'shopSave') return json_(shopSave_(user, body));
     if (body.action === 'order') return json_(locked_(function () { return addOrder_(user, body.order); }));
     if (body.action === 'orders') return json_(listOrders_(user));
     if (body.action === 'fileStart') return json_(fileStart_(user, body));
@@ -173,9 +197,18 @@ function addOrder_(user, o) {
 
   const items = Array.isArray(o.items) ? o.items.slice(0, 50) : [];
   if (!items.length) return { ok: false, error: 'bad_order' };
+  // Shop models are already in your Drive, so their files are linked straight away.
+  const shopItems = items.some(function (i) { return i && i.shopKey; }) ? shopData_().items : [];
+  const shopLinks = [];
   const lines = items.map(function (i) {
     const qty = Math.max(1, Math.min(100, Math.round(Number(i.qty) || 1)));
-    return clean_(i.name, 120) + ' × ' + qty + ': ' + clean_(i.spec, 300) + ' (₹' + (money_(i.total) || 0) + ')';
+    let label = '';
+    if (i.shopKey) {
+      const it = shopItems.filter(function (x) { return x.key === String(i.shopKey); })[0];
+      label = it ? 'Shop: ' : 'Shop (no longer listed): ';
+      if (it) shopLinks.push(it);
+    }
+    return label + clean_(i.name, 120) + ' × ' + qty + ': ' + clean_(i.spec, 300) + ' (₹' + (money_(i.total) || 0) + ')';
   });
   const pieces = items.reduce(function (t, i) { return t + Math.max(1, Math.round(Number(i.qty) || 1)); }, 0);
 
@@ -201,6 +234,9 @@ function addOrder_(user, o) {
   ].concat(amounts)]);
   sh.getRange(row, 16, 1, 4).setValues([[String(o.utr), 'Payment being checked', 'New', expected]]);
 
+  shopLinks.forEach(function (it) {
+    addFileLink_(sh, row, 'Shop: ' + it.name, 'https://drive.google.com/file/d/' + it.file + '/view');
+  });
   upsertUser_(user, o.saveAddress ? { phone: phone, addressText: addressText, pin: pin } : { phone: phone });
 
   const mail = {
@@ -419,6 +455,214 @@ function emailPaymentReceived_(sh, row) {
     [['Order', id], ['Models', String(v[7])], ['*Paid', rupees_(total)], ['UPI reference', String(v[15])],
      ['Expected delivery', expected ? expected + ' (estimate)' : '']]);
   props.setProperty(key, new Date().toISOString());
+}
+
+/* ---------- Shop ---------- */
+
+// Shop tab columns: Rank, Hide from website, Name, Category, Description,
+// STL file (Drive link), Picture colour, then four the website fills in:
+// Status, Size (mm), Pictures, Website data.
+const SHOP_TAB = 'Shop';
+const SETTINGS_TAB = 'Settings';
+const PRICES_TAB = 'Prices';
+
+function pricingTab_(name) {
+  return SpreadsheetApp.openById(PRICING_SHEET_ID).getSheetByName(name);
+}
+function text_(v, max) {
+  return String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max || 200);
+}
+function driveIdOf_(link) {
+  const m = /[-\w]{25,}/.exec(String(link || ''));
+  return m ? m[0] : '';
+}
+function isOwner_(user) {
+  const me = String(Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  return !!me && !!user && user.email === me;
+}
+
+function shopRows_() {
+  const sh = pricingTab_(SHOP_TAB);
+  if (!sh) return [];
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 11).getValues().map(function (v, i) {
+    let data = null;
+    try { data = v[10] ? JSON.parse(String(v[10])) : null; } catch (err) { data = null; }
+    return {
+      row: i + 2, rank: v[0], hide: v[1] === true || /^true$/i.test(String(v[1])),
+      name: text_(v[2], 120), cat: text_(v[3], 40), desc: text_(v[4], 600),
+      link: text_(v[5], 500), fileId: driveIdOf_(v[5]), colour: text_(v[6], 40),
+      status: text_(v[7], 200), data: data
+    };
+  }).filter(function (r) { return r.name || r.link; });
+}
+
+function shopSpinOn_() {
+  const sh = pricingTab_(SETTINGS_TAB);
+  if (!sh) return false;
+  const v = sh.getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) {
+    if (/3d spin/i.test(String(v[i][0]))) return v[i][1] === true || /^(true|on|yes)$/i.test(String(v[i][1]).trim());
+  }
+  return false;
+}
+
+// Everything the Shop needs, kept for a minute so the website stays quick.
+function shopData_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('shop:data');
+  if (hit) return JSON.parse(hit);
+  const pricesTab = pricingTab_(PRICES_TAB);
+  const items = shopRows_()
+    .filter(function (r) { return !r.hide && r.name && r.data && r.data.key && r.fileId && r.data.file === r.fileId; })
+    .map(function (r, i) {
+      const rank = typeof r.rank === 'number' ? r.rank : (String(r.rank).trim() && isFinite(Number(r.rank)) ? Number(r.rank) : null);
+      return {
+        key: r.data.key, name: r.name, cat: r.cat, desc: r.desc, colour: r.colour,
+        dims: r.data.dims, vol: r.data.vol, area: r.data.area, pics: r.data.pics || [],
+        preview: r.data.preview || '', file: r.fileId, rank: rank, order: i
+      };
+    });
+  items.sort(function (a, b) {
+    if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;
+    if (a.rank !== null && b.rank === null) return -1;
+    if (a.rank === null && b.rank !== null) return 1;
+    return a.order - b.order;
+  });
+  const out = { spin: shopSpinOn_(), prices: pricesTab ? pricesTab.getDataRange().getDisplayValues() : [], items: items, at: new Date().toISOString() };
+  try { cache.put('shop:data', JSON.stringify(out), SHOP_CACHE_SECONDS); } catch (err) { /* too big to keep; read fresh next time */ }
+  return out;
+}
+
+// What anyone visiting the website gets. File IDs stay on the server.
+function shopPublic_() {
+  const d = shopData_();
+  return {
+    ok: true, spin: d.spin, prices: d.prices, at: d.at,
+    items: d.items.map(function (it) {
+      return { key: it.key, name: it.name, cat: it.cat, desc: it.desc, colour: it.colour, dims: it.dims, vol: it.vol, area: it.area, pics: it.pics, spin: d.spin && !!it.preview };
+    })
+  };
+}
+
+// The lighter 3D copy of a Shop model, only while 3D spin is ticked in Settings.
+function shopPreview_(key) {
+  const d = shopData_();
+  if (!d.spin) return { ok: false, error: 'spin_off' };
+  const it = d.items.filter(function (x) { return x.key === key; })[0];
+  if (!it || !it.preview) return { ok: false, error: 'not_found' };
+  return { ok: true, data: Utilities.base64Encode(DriveApp.getFileById(it.preview).getBlob().getBytes()) };
+}
+
+function setShopStatus_(sh, r, text) {
+  if (r.status !== text) sh.getRange(r.row, 8).setValue(text);
+}
+
+// For the owner's Update shop button: which rows need pictures made.
+function shopAdmin_(user) {
+  if (!isOwner_(user)) return { ok: false, error: 'not_owner' };
+  const sh = pricingTab_(SHOP_TAB);
+  if (!sh) return { ok: false, error: 'no_shop_tab' };
+  const items = shopRows_().map(function (r) {
+    const item = { row: r.row, name: r.name || 'Row ' + r.row, colour: r.colour, hide: r.hide, ready: false, need: false, error: '' };
+    if (!r.name) { setShopStatus_(sh, r, 'Add a name'); item.error = 'no_name'; return item; }
+    if (!r.fileId) { setShopStatus_(sh, r, 'Add the STL file link'); item.error = 'no_link'; return item; }
+    let f;
+    try { f = DriveApp.getFileById(r.fileId); f.getName(); } catch (err) {
+      setShopStatus_(sh, r, 'Can’t open this link. Paste the Drive link of an .stl file in your Drive.');
+      item.error = 'bad_link'; return item;
+    }
+    const size = f.getSize();
+    if (size > MAX_FILE_BYTES) { setShopStatus_(sh, r, 'This file is over 100 MB'); item.error = 'too_big'; return item; }
+    if (size < 84) { setShopStatus_(sh, r, 'This file is empty or isn’t an STL'); item.error = 'empty'; return item; }
+    item.fileId = r.fileId; item.size = size; item.fileName = f.getName();
+    item.sig = r.fileId + ':' + f.getLastUpdated().getTime() + ':' + r.colour;
+    item.ready = !!(r.data && r.data.sig === item.sig);
+    item.need = !item.ready;
+    if (item.need) setShopStatus_(sh, r, 'Needs pictures: tap Update shop on the website');
+    return item;
+  });
+  return { ok: true, items: items, sheetUrl: 'https://docs.google.com/spreadsheets/d/' + PRICING_SHEET_ID + '/edit#gid=' + sh.getSheetId() };
+}
+
+// Sends the owner's browser one 8 MB piece of a Shop STL, so it can make the pictures.
+function shopRead_(user, body) {
+  if (!isOwner_(user)) return { ok: false, error: 'not_owner' };
+  const id = String(body.fileId || '');
+  if (!shopRows_().some(function (r) { return r.fileId === id; })) return { ok: false, error: 'not_found' };
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  const res = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?alt=media', {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), Range: 'bytes=' + offset + '-' + (offset + SHOP_READ_BYTES - 1) },
+    muteHttpExceptions: true
+  });
+  const code = res.getResponseCode();
+  if (code !== 200 && code !== 206) return driveFailure_('Shop file read', res);
+  const bytes = res.getContent();
+  const h = res.getHeaders();
+  const m = /\/(\d+)\s*$/.exec(String(h['Content-Range'] || h['content-range'] || ''));
+  const total = code === 206 && m ? Number(m[1]) : offset + bytes.length;
+  return { ok: true, data: Utilities.base64Encode(bytes), size: total, done: offset + bytes.length >= total };
+}
+
+// Saves the pictures, 3D preview and measurements the owner's browser made for one Shop row.
+function shopSave_(user, body) {
+  if (!isOwner_(user)) return { ok: false, error: 'not_owner' };
+  const sh = pricingTab_(SHOP_TAB);
+  const rowNo = Math.floor(Number(body.row));
+  if (!sh || !(rowNo >= 2 && rowNo <= sh.getLastRow())) return { ok: false, error: 'row_changed' };
+  const v = sh.getRange(rowNo, 1, 1, 11).getValues()[0];
+  const fileId = driveIdOf_(v[5]);
+  if (!fileId || fileId !== String(body.fileId || '')) return { ok: false, error: 'row_changed' };
+
+  const dims = (Array.isArray(body.dims) ? body.dims : []).slice(0, 3).map(Number);
+  const vol = Number(body.vol), area = Number(body.area);
+  if (dims.length !== 3 || !dims.every(function (d) { return isFinite(d) && d > 0 && d < 10000; }) || !(vol > 0) || !(area > 0)) return { ok: false, error: 'bad_model' };
+  const pics = (Array.isArray(body.pics) ? body.pics : []).slice(0, 4).map(function (b) { return Utilities.base64Decode(String(b)); });
+  if (!pics.length || pics.some(function (b) { return !b.length || b.length > 800 * 1024; })) return { ok: false, error: 'bad_pictures' };
+  const preview = body.preview ? Utilities.base64Decode(String(body.preview)) : null;
+  if (preview && preview.length > 24 * 1024 * 1024) return { ok: false, error: 'preview_too_big' };
+
+  const name = text_(v[2], 80) || 'Model';
+  const picFolder = DriveApp.getFolderById(SHOP_PICTURES_FOLDER_ID);
+  const picIds = pics.map(function (bytes, i) {
+    const f = picFolder.createFile(Utilities.newBlob(bytes, 'image/jpeg', name + ' ' + (i + 1) + '.jpg'));
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return f.getId();
+  });
+  const previewId = preview ? DriveApp.getFolderById(SHOP_PREVIEWS_FOLDER_ID).createFile(Utilities.newBlob(preview, 'application/octet-stream', name + '.preview')).getId() : '';
+
+  let old = null;
+  try { old = v[10] ? JSON.parse(String(v[10])) : null; } catch (err) { old = null; }
+  if (old) (old.pics || []).concat(old.preview ? [old.preview] : []).forEach(function (id) {
+    try { DriveApp.getFileById(id).setTrashed(true); } catch (err) { /* already gone */ }
+  });
+
+  const f = DriveApp.getFileById(fileId);
+  const round = function (n, d) { const k = Math.pow(10, d); return Math.round(n * k) / k; };
+  const data = {
+    key: (old && old.key) || Utilities.getUuid().replace(/-/g, '').slice(0, 12),
+    file: fileId, sig: fileId + ':' + f.getLastUpdated().getTime() + ':' + text_(v[6], 40),
+    vol: round(vol, 1), area: round(area, 1), dims: dims.map(function (d) { return round(d, 2); }),
+    pics: picIds, preview: previewId, tris: Math.floor(Number(body.tris) || 0), at: new Date().toISOString()
+  };
+  const label = 'Picture ';
+  const text = picIds.map(function (id, i) { return label + (i + 1); }).join(', ');
+  const rich = SpreadsheetApp.newRichTextValue().setText(text);
+  let at = 0;
+  picIds.forEach(function (id, i) {
+    const part = label + (i + 1);
+    rich.setLinkUrl(at, at + part.length, 'https://drive.google.com/file/d/' + id + '/view');
+    at += part.length + 2;
+  });
+  sh.getRange(rowNo, 8, 1, 2).setValues([[
+    'Ready, pictures made ' + Utilities.formatDate(new Date(), 'Asia/Kolkata', 'd MMM, h:mm a'),
+    dims.map(function (d) { return Math.round(d); }).join(' × ') + ' mm'
+  ]]);
+  sh.getRange(rowNo, 10).setRichTextValue(rich.build());
+  sh.getRange(rowNo, 11).setValue(JSON.stringify(data));
+  CacheService.getScriptCache().remove('shop:data');
+  return { ok: true, key: data.key };
 }
 
 /* ---------- Model files ---------- */

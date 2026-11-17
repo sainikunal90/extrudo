@@ -14,9 +14,19 @@ The whole site is one file, `index.html`. It needs no build step and no server.
 
 ## Prices
 
-The prices live in the `price-data` block near the end of `index.html`, as rows of Section, Item, Value, Unit and Notes. They are a copy of the "Extrudo Pricing Controls" Google Sheet. To change a price on this copy, edit the Value in that block and commit the file.
+Prices come from the **Prices** tab of the "Extrudo Pricing Controls" Google Sheet, as rows of Section, Item, Value, Unit and Notes. On GitHub Pages the order script sends the current rows with the Shop list, so a price changed in the sheet reaches the website within a minute. The `price-data` block near the end of `index.html` is a copy the site uses until the sheet answers, or if it can't be reached.
 
 The "Update prices from sheet" button only appears when the site is opened inside Claude, so it does not show on GitHub Pages.
+
+## Shop
+
+The Shop tab on the website lists the shop's own designs from the **Shop** tab of the "Extrudo Pricing Controls" Google Sheet:
+
+- Each row is one design: Rank (lower shows first; rows without a rank follow in sheet order), Hide from website, Name, Category, Description, the Drive link of its STL file, and the colour to show it in. The last four columns are filled in by the website.
+- To add or change a design, edit its row, then open the website's Shop page signed in with the owner's Google account and tap **Update shop**. The owner's browser reads each new or changed STL through the order script, renders three pictures in the chosen colour, makes a lighter 3D copy, works out the size, volume and surface area used for pricing, and saves them to Drive (Extrudo > Shop pictures, which anyone with the link can view, and Extrudo > Shop previews, which stays private).
+- The **Settings** tab has a "3D spin on Shop items" tick box. Ticked, customers can turn Shop designs around in 3D: the script sends their browser the lighter copy. Unticked, they see pictures only and the script refuses to send any 3D data. The STL files themselves never leave Drive.
+- Shop orders need no upload: the order's Model files cell links straight to the design's STL.
+- Sheet changes (ranks, names, the 3D setting, prices) reach the website within a minute.
 
 ## Sign-in and orders
 

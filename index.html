@@ -379,6 +379,36 @@ input[type=range]{width:100%;height:30px;margin:4px 0 0;accent-color:var(--accen
 .up-pill strong{font-variant-numeric:tabular-nums}
 .up-pill-dot{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;flex:none}
 body.on-estimate .up-pill{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+/* Shop */
+.shop-owner{border:1px dashed var(--accent);background:var(--accent-soft);border-radius:14px;padding:14px 16px;margin:0 0 16px;display:grid;gap:8px}
+.shop-owner-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.shop-owner h3{margin:0;font-size:1rem}
+.shop-owner p{margin:0;line-height:1.5}
+.shop-owner .row-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.thumb.photo{background:#E9ECF0}
+.thumb.photo img{object-fit:cover}
+.card.skeleton{cursor:default;pointer-events:none}
+.card.skeleton .thumb{background:var(--surface-2);animation:pulse 1.4s ease-in-out infinite}
+.card.skeleton .card-body span{display:block;height:12px;border-radius:6px;background:var(--surface-2);margin:4px 0;animation:pulse 1.4s ease-in-out infinite}
+.card.skeleton .card-body span+span{width:60%}
+@keyframes pulse{50%{opacity:.5}}
+.shop-empty{grid-column:1/-1;padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}
+.shop-empty h3{margin:0 0 4px;color:var(--ink);font-size:1rem}
+.shop-empty p{margin:0}
+.gallery{position:absolute;inset:0;background:#E9ECF0}
+.gallery-main{position:absolute;inset:0;display:grid;place-items:center;cursor:pointer}
+.gallery-main img{width:100%;height:100%;object-fit:contain;display:block}
+.gallery-thumbs{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:3}
+.gallery-thumbs button{width:52px;height:52px;border-radius:10px;border:2px solid #FFFFFF;padding:0;overflow:hidden;background:#E9ECF0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.gallery-thumbs button[aria-current="true"]{border-color:var(--accent)}
+.gallery-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.stage-mode{display:flex;gap:3px;padding:3px;border-radius:10px;background:var(--surface);pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.stage-mode button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:.86rem;padding:7px 12px;border-radius:8px;cursor:pointer}
+.stage-mode button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.stage-mode button:disabled{cursor:progress;opacity:.75}
+.shop-info{margin:0 0 14px;padding:0 0 14px;border-bottom:1px solid var(--line);display:grid;gap:6px;justify-items:start}
+.shop-info p{margin:0;line-height:1.5}
+@media (prefers-reduced-motion:reduce){.card.skeleton .thumb,.card.skeleton .card-body span{animation:none}}
 @media (prefers-reduced-motion:reduce){.proc-ring,.proc-icon .ly,.proc-icon .nz,.up-bar i,.up-pill-dot{animation:none!important}.up-bar i{transition:none}}
 
 /* Live site: Google sign-in replaces the demo accounts */
@@ -402,7 +432,7 @@ body:not(.live) .live-only{display:none!important}
     </a>
     <nav class="tabs" aria-label="Main">
       <a href="#estimate" data-view="estimate">Estimate</a>
-      <a href="#models" data-view="models">Models</a>
+      <a href="#shop" data-view="shop">Shop</a>
       <a href="#cart" data-view="cart">Cart<span class="count" id="cartCount" hidden></span></a>
       <a href="#orders" data-view="orders">Orders</a>
     </nav>
@@ -432,11 +462,13 @@ body:not(.live) .live-only{display:none!important}
     <div class="bench">
       <div class="stage" id="stage">
         <div class="viewport" id="viewport"></div>
+        <div class="gallery" id="gallery" hidden><div class="gallery-main"></div><div class="gallery-thumbs"></div></div>
         <div class="stage-top">
           <div class="model-label"><strong id="modelName">Loading model</strong><span id="modelDims"></span></div>
           <button class="btn primary sm" id="uploadBtn" type="button">Upload STL</button>
         </div>
         <div class="stage-bottom">
+          <div class="stage-mode" id="stageMode" role="group" aria-label="View" hidden><button type="button" data-mode="3d" aria-pressed="false">3D</button><button type="button" data-mode="pics" aria-pressed="true">Pictures</button></div>
           <p class="hint" id="hint">Drag to turn the model.</p>
           <div class="zoom">
             <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
@@ -447,6 +479,7 @@ body:not(.live) .live-only{display:none!important}
       </div>
 
       <div class="panel">
+        <div class="shop-info" id="shopInfo" hidden></div>
         <div class="price" id="priceBlock">
           <div class="total-row"><span class="total" id="total">₹0</span><span class="total-note" id="totalNote">for 1 piece</span></div>
           <p class="facts" id="facts"></p>
@@ -496,11 +529,12 @@ body:not(.live) .live-only{display:none!important}
     </section>
   </section>
 
-  <section id="view-models" class="view" hidden>
+  <section id="view-shop" class="view" hidden>
     <div class="view-head">
-      <h2>Ready-to-print models</h2>
+      <h2>Shop</h2>
       <p id="modelsNote">Tap a model to price it your way.</p>
     </div>
+    <div class="shop-owner" id="shopOwner" hidden></div>
     <div class="chips" id="chips" role="toolbar" aria-label="Filter models"></div>
     <div class="grid" id="modelGrid"></div>
   </section>
@@ -1131,7 +1165,7 @@ body:not(.live) .live-only{display:none!important}
     $('#matSeg').innerHTML = matKeys().map(k => { const m = P.materials[k]; return `<label><input type="radio" name="material" value="${esc(k)}"><span>${esc(m.label)}${m.sub ? `<small>${esc(m.sub)}</small>` : ''}</span></label>`; }).join('');
     $('#qualSeg').innerHTML = P.qualities.map(q => `<label><input type="radio" name="quality" value="${esc(q.key)}"><span>${esc(q.label)}<small>${q.layer.toFixed(2)} mm layers</small></span></label>`).join('');
     $('#infillSeg').innerHTML = P.infills.map(i => `<label><input type="radio" name="infill" value="${i.pct}"><span>${fmtNum(i.pct)}%</span></label>`).join('');
-    $('#heroText').textContent = `Upload an STL or pick a ready model. Extrudo prints ${matList()} parts to order in Gurgaon, and estimates are free with no account needed.`;
+    $('#heroText').textContent = `Upload an STL or pick a design from the Shop. Extrudo prints ${matList()} parts to order in Gurgaon, and estimates are free with no account needed.`;
     $('#footText').textContent = `Extrudo prints ${matList()} parts to order in Gurgaon, India.`;
     $('#modelsNote').textContent = `Tap a model to price it your way. Prices shown are for ${P.materials[P.firstMat].label} at ${P.baseQuality.label.toLowerCase()} quality with ${fmtNum(P.baseInfill)}% infill, before setup and shipping.`;
   }
@@ -1187,6 +1221,7 @@ body:not(.live) .live-only{display:none!important}
   function loadSample(id, opts) {
     const s = SAMPLES.find(x => x.id === id); if (!s || !s.geo) return;
     state.model = { name: s.name, source: 'sample', sampleId: s.id, geo: s.geo, vol: s.vol, area: s.area, dims: s.dims, leaky: false };
+    leaveShopItem();
     if (opts) Object.assign(state.opts, opts); else { state.opts.colour = s.colour; state.opts.scale = 100; }
     syncOptions();
     viewer.setModel(s.geo, false, currentColour(), state.opts.scale / 100);
@@ -1206,6 +1241,7 @@ body:not(.live) .live-only{display:none!important}
         geo.rotateX(-Math.PI / 2);
         const r = prepare(geo, true);
         state.model = { name: file.name.replace(/\.stl$/i, ''), source: 'upload', geo: r.geo, vol: r.vol, area: r.area, dims: r.dims, leaky: r.leaky, file };
+        leaveShopItem();
         state.opts.scale = 100;
         syncOptions();
         viewer.setModel(r.geo, true, currentColour(), 1);
@@ -1265,6 +1301,7 @@ body:not(.live) .live-only{display:none!important}
 
   function signIn(email, name) {
     const guestCart = store.get('extrudo.cart.guest', []);
+    if (!state.user || state.user.email !== email) { state.isOwner = undefined; state.ownerChecked = false; shop.admin = null; }
     state.user = { email, name };
     if (LIVE) store.set(K_PROFILE, { email, name }); else store.set(K_SESSION, email);
     if (guestCart.length) { setCart(getCart().concat(guestCart)); store.del('extrudo.cart.guest'); }
@@ -1279,6 +1316,7 @@ body:not(.live) .live-only{display:none!important}
   function logout() {
     closeMenu();
     state.user = null; store.del(K_SESSION); sess.set(K_GUEST, '1');
+    state.isOwner = undefined; state.ownerChecked = false; shop.admin = null;
     if (LIVE) { store.del(K_PROFILE); store.del(K_TOKEN); liveToken = null; try { google.accounts.id.disableAutoSelect(); } catch (e) {} }
     state.co = { step: 1, addrId: null, pin: '', ref: null, address: null };
     renderWho();
@@ -1327,7 +1365,7 @@ body:not(.live) .live-only{display:none!important}
     liveToken = { token: resp.credential, exp: p.exp };
     store.set(K_TOKEN, liveToken);
     signIn(String(p.email).toLowerCase(), p.name || String(p.email).split('@')[0]);
-    api('signin').catch(() => {});
+    api('signin').then(d => { state.isOwner = !!(d && d.owner); if (state.view === 'shop') renderOwnerPanel(); }).catch(() => {});
   }
   async function api(action, payload) {
     let res;
@@ -1400,10 +1438,11 @@ body:not(.live) .live-only{display:none!important}
 
   function queueUploads(orderId, items) {
     uploads.justDone = null;
-    uploads.list.push({
-      orderId, email: state.user.email,
-      files: items.map((it, i) => ({ index: i, name: it.name, kind: it.source === 'upload' ? 'upload' : 'sample', key: it.id, sampleId: it.sampleId || null, done: false }))
-    });
+    // Shop designs are already in the shop's Drive, so only other models are sent.
+    const files = items.map((it, i) => ({ index: i, name: it.name, kind: it.source === 'upload' ? 'upload' : it.source === 'shop' ? 'shop' : 'sample', key: it.id, sampleId: it.sampleId || null, done: false }))
+      .filter(f => f.kind !== 'shop');
+    if (!files.length) return;
+    uploads.list.push({ orderId, email: state.user.email, files });
     saveUploads();
     setTimeout(runUploads, 300);
   }
@@ -1679,6 +1718,336 @@ body:not(.live) .live-only{display:none!important}
     idb.keys().then(keys => keys.forEach(k => { if (!keep.has(k)) idb.del(k).catch(() => {}); })).catch(() => {});
   }
 
+  /* ---------- Shop: your designs, listed in the Shop tab of the pricing sheet ---------- */
+  const K_SHOP = 'extrudo.shop';
+  const shop = { items: null, spin: false, loading: false, error: false, admin: null, busy: false, busyText: '', busyPct: 0 };
+  const stageView = { mode: '3d', key: null, pics: [], idx: 0, can3d: false, loading: false, userPicked: false, seq: 0, previews: new Map() };
+  let glOk = false, livePriceSig = '';
+
+  const picUrl = (id, w) => `https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w${w}`;
+  const picUrlAlt = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+  const colourIdFor = name => { const n = String(name || '').trim().toLowerCase(); const c = COLOURS.find(x => x.name.toLowerCase() === n || x.id === n); return c ? c.id : 'cobalt'; };
+  const baseOpts = () => Object.assign({}, DEFAULT_OPTS, { material: P.firstMat, quality: P.baseQuality.key, infill: P.baseInfill, scale: 100, qty: 1, supports: false });
+  const shopFrom = it => priceItem({ vol: it.vol, area: it.area, dims: it.dims }, baseOpts()).total;
+
+  // Prices typed into the Prices tab reach the website with the Shop list.
+  function applyLivePrices(rows) {
+    if (!Array.isArray(rows) || rows.length < 5) return;
+    const norm = normaliseRows(rows), sig = JSON.stringify(norm);
+    if (sig === livePriceSig) return;
+    const fresh = buildPricing(norm);
+    if (!Object.keys(fresh.materials).length || !fresh.qualities.length || !fresh.infills.length) return;
+    livePriceSig = sig;
+    Object.keys(P).forEach(k => { delete P[k]; });
+    Object.assign(P, fresh);
+    buildOptions(); syncOptions();
+    SAMPLES.forEach(s => { if (s.vol) s.from = priceItem(s, baseOpts()).total; });
+    if (state.model) updateEstimate();
+    rerenderView();
+  }
+  function applyShop(d) {
+    shop.items = Array.isArray(d.items) ? d.items : [];
+    shop.spin = !!d.spin; shop.error = false;
+    applyLivePrices(d.prices);
+  }
+  function loadShop() {
+    if (!LIVE || shop.loading) return;
+    if (!shop.items) { const cached = store.get(K_SHOP, null); if (cached && cached.items) applyShop(cached); }
+    shop.loading = true;
+    fetch(LIVE_CONFIG.apiUrl + '?action=shop')
+      .then(r => r.json())
+      .then(d => { if (!d || !d.ok) throw new Error('shop'); store.set(K_SHOP, d); applyShop(d); })
+      .catch(() => { if (!shop.items) shop.error = true; })
+      .finally(() => { shop.loading = false; if (state.view === 'shop') renderModels(); });
+  }
+
+  function shopCard(it) {
+    const pic = it.pics && it.pics[0];
+    return `<button type="button" class="card" data-shop="${esc(it.key)}">
+        <div class="thumb photo">${pic ? `<img src="${picUrl(pic, 480)}" alt="" loading="lazy">` : `<span class="thumb-fallback">${esc(it.name.charAt(0))}</span>`}</div>
+        <div class="card-body"><span class="card-name">${esc(it.name)}</span><span class="card-meta">${it.cat ? esc(it.cat) + ', ' : ''}${fmtDims(it.dims)}</span><span class="card-price">From ${inr(shopFrom(it))}</span></div></button>`;
+  }
+  const uploadCard = () => `<button type="button" class="card upload-card" data-upload>
+        <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
+        <div class="card-body"><span class="card-name">Your own model</span><span class="card-meta">Upload an STL to price it</span></div></button>`;
+  function renderShopGrid() {
+    renderOwnerPanel();
+    const grid = $('#modelGrid'), chips = $('#chips');
+    if (!shop.items) {
+      chips.innerHTML = '';
+      grid.innerHTML = shop.error
+        ? `<div class="empty"><h3>The Shop didn’t load</h3><p>Check your connection and try again.</p><button type="button" class="btn primary" data-shop-retry>Try again</button></div>`
+        : uploadCard() + Array.from({ length: 5 }, () => '<div class="card skeleton" aria-hidden="true"><div class="thumb"></div><div class="card-body"><span></span><span></span></div></div>').join('');
+      if (!shop.loading && !shop.error) loadShop();
+      return;
+    }
+    const cats = ['All'].concat(Array.from(new Set(shop.items.map(i => i.cat).filter(Boolean))));
+    if (cats.indexOf(state.filter) < 0) state.filter = 'All';
+    chips.innerHTML = cats.length > 2 ? cats.map(c => `<button type="button" class="chip" data-cat="${esc(c)}" aria-pressed="${c === state.filter}">${esc(c)}</button>`).join('') : '';
+    const list = shop.items.filter(i => state.filter === 'All' || i.cat === state.filter);
+    grid.innerHTML = (state.filter === 'All' ? uploadCard() : '') + list.map(shopCard).join('')
+      + (shop.items.length ? '' : '<div class="shop-empty"><h3>New designs are on their way</h3><p>Meanwhile, upload your own STL file for an instant price.</p></div>');
+  }
+
+  /* The model page for a Shop design: pictures, and 3D spin while it's switched on */
+  function renderShopInfo(it) {
+    const box = $('#shopInfo');
+    if (!it) { box.hidden = true; box.innerHTML = ''; return; }
+    const col = colourById(colourIdFor(it.colour)).name;
+    box.hidden = false;
+    box.innerHTML = `<span class="badge muted">Shop${it.cat ? ', ' + esc(it.cat) : ''}</span>${it.desc ? `<p>${esc(it.desc)}</p>` : ''}<p class="help">Pictured in ${esc(col)}. Your print comes in the colour you choose below.</p>`;
+  }
+  function renderGallery() {
+    const g = $('#gallery'), pics = stageView.pics;
+    const main = pics[stageView.idx] || pics[0];
+    g.querySelector('.gallery-main').innerHTML = main ? `<img src="${picUrl(main, 1200)}" alt="${esc(state.model ? state.model.name : '')}, picture ${stageView.idx + 1} of ${pics.length}">` : '';
+    g.querySelector('.gallery-thumbs').innerHTML = pics.length > 1 ? pics.map((id, i) => `<button type="button" data-pic="${i}" aria-label="Picture ${i + 1}" aria-current="${i === stageView.idx}"><img src="${picUrl(id, 160)}" alt=""></button>`).join('') : '';
+  }
+  function setStage(mode) {
+    const isShop = !!(state.model && state.model.source === 'shop');
+    stageView.mode = isShop ? mode : '3d';
+    const pics = isShop && stageView.mode === 'pics';
+    $('#gallery').hidden = !pics;
+    const sw = $('#stageMode');
+    sw.hidden = !(isShop && stageView.can3d);
+    const b3 = sw.querySelector('[data-mode="3d"]');
+    b3.disabled = stageView.loading; b3.textContent = stageView.loading ? 'Loading 3D…' : '3D';
+    sw.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === stageView.mode)));
+    $('#hint').hidden = !glOk || isShop;
+    $('.zoom').hidden = !glOk || pics;
+    viewer.setVisible(state.view === 'estimate' && !pics);
+  }
+  function leaveShopItem() {
+    stageView.seq++; stageView.can3d = false; stageView.loading = false; stageView.key = null;
+    renderShopInfo(null); setStage('3d');
+  }
+  function openShopItem(key) {
+    const it = (shop.items || []).find(x => x.key === key); if (!it) return;
+    stageView.seq++;
+    state.model = { name: it.name, source: 'shop', shopKey: it.key, geo: null, vol: it.vol, area: it.area, dims: it.dims, leaky: false, pics: it.pics || [] };
+    state.opts.colour = colourIdFor(it.colour); state.opts.scale = 100;
+    syncOptions();
+    Object.assign(stageView, { key: it.key, pics: it.pics || [], idx: 0, userPicked: false, can3d: !!(it.spin && shop.spin && glOk), loading: false });
+    renderShopInfo(it); renderGallery();
+    if (location.hash !== '#estimate') location.hash = '#estimate';
+    setStage('pics');
+    updateEstimate();
+    if (stageView.can3d) loadPreview(it);
+  }
+  async function loadPreview(it) {
+    const seq = stageView.seq;
+    stageView.loading = true; setStage(stageView.mode);
+    try {
+      let pos = stageView.previews.get(it.key);
+      if (!pos) {
+        const r = await fetch(LIVE_CONFIG.apiUrl + '?action=preview&key=' + encodeURIComponent(it.key));
+        const d = await r.json();
+        if (!d || !d.ok) throw new Error((d && d.error) || 'preview');
+        pos = await decodePreview(d.data);
+        stageView.previews.set(it.key, pos);
+      }
+      if (seq !== stageView.seq) return;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const r = prepare(geo, true);
+      state.model.geo = r.geo;
+      viewer.setModel(r.geo, true, currentColour(), state.opts.scale / 100);
+      stageView.loading = false;
+      setStage(stageView.userPicked ? stageView.mode : '3d');
+    } catch (e) {
+      if (seq !== stageView.seq) return;
+      stageView.loading = false; stageView.can3d = false; setStage('pics');
+    }
+  }
+
+  /* The lighter 3D copy: nearby corners merged (each kept at their average spot),
+     16-bit coordinates, then gzipped. Detailed models are thinned to about 200,000 triangles. */
+  function encodePreview(p, target) {
+    target = target || 200000;
+    const n = p.length / 9, mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < p.length; i += 3) for (let a = 0; a < 3; a++) { const v = p[i + a]; if (v < mn[a]) mn[a] = v; if (v > mx[a]) mx[a] = v; }
+    const size = Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) || 1;
+    let cell = n <= target ? size / 65535 : size / 1400, res;
+    for (let pass = 0; pass < 8; pass++) {
+      res = clusterMesh(p, mn, cell);
+      if (res.nt <= target) break;
+      cell *= Math.sqrt(res.nt / target) * 1.04;
+    }
+    const step = size / 65535, nv = res.nv, q = new Uint16Array(nv * 3);
+    for (let v = 0; v < nv; v++) for (let a = 0; a < 3; a++) q[v * 3 + a] = Math.max(0, Math.min(65535, Math.round((res.sum[v * 3 + a] / res.cnt[v] - mn[a]) / step)));
+    const vBytes = nv * 6, pad = (36 + vBytes) % 4 ? 4 - (36 + vBytes) % 4 : 0;
+    const buf = new ArrayBuffer(36 + vBytes + pad + res.nt * 12), dv = new DataView(buf);
+    [69, 88, 80, 49].forEach((c, i) => dv.setUint8(i, c));   // "EXP1"
+    dv.setUint32(4, nv, true); dv.setUint32(8, res.nt, true);
+    for (let a = 0; a < 3; a++) { dv.setFloat32(12 + a * 4, mn[a], true); dv.setFloat32(24 + a * 4, step, true); }
+    new Uint16Array(buf, 36, nv * 3).set(q);
+    new Uint32Array(buf, 36 + vBytes + pad, res.nt * 3).set(res.idx);
+    return new Uint8Array(buf);
+  }
+  function clusterMesh(p, mn, cell) {
+    const map = new Map(), idx = new Uint32Array(p.length / 3), inv = 1 / cell, tri = [0, 0, 0];
+    let sum = new Float64Array(1 << 16), cnt = new Uint32Array(1 << 14), nv = 0, nt = 0;
+    for (let t = 0, T = p.length / 9; t < T; t++) {
+      for (let k = 0; k < 3; k++) {
+        const o = t * 9 + k * 3, x = p[o], y = p[o + 1], z = p[o + 2];
+        const key = (Math.round((x - mn[0]) * inv) * 65536 + Math.round((y - mn[1]) * inv)) * 65536 + Math.round((z - mn[2]) * inv);
+        let v = map.get(key);
+        if (v === undefined) {
+          v = nv++; map.set(key, v);
+          if (nv > cnt.length) { const c2 = new Uint32Array(cnt.length * 2); c2.set(cnt); cnt = c2; const s2 = new Float64Array(cnt.length * 3); s2.set(sum); sum = s2; }
+        }
+        sum[v * 3] += x; sum[v * 3 + 1] += y; sum[v * 3 + 2] += z; cnt[v]++;
+        tri[k] = v;
+      }
+      if (tri[0] === tri[1] || tri[1] === tri[2] || tri[0] === tri[2]) continue;
+      idx[nt * 3] = tri[0]; idx[nt * 3 + 1] = tri[1]; idx[nt * 3 + 2] = tri[2]; nt++;
+    }
+    return { sum, cnt, nv, idx: idx.subarray(0, nt * 3), nt };
+  }
+  async function decodePreview(b64) {
+    let raw = b64ToBytes(b64);
+    if (raw[0] === 0x1f && raw[1] === 0x8b) raw = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength), dv = new DataView(buf);
+    if (dv.getUint32(0, true) !== 0x31505845) throw new Error('preview_format');
+    const nv = dv.getUint32(4, true), nt = dv.getUint32(8, true);
+    const mn = [0, 1, 2].map(a => dv.getFloat32(12 + a * 4, true)), st = [0, 1, 2].map(a => dv.getFloat32(24 + a * 4, true));
+    const vBytes = nv * 6, pad = (36 + vBytes) % 4 ? 4 - (36 + vBytes) % 4 : 0;
+    const q = new Uint16Array(buf, 36, nv * 3), idx = new Uint32Array(buf, 36 + vBytes + pad, nt * 3);
+    const pos = new Float32Array(nt * 9);
+    for (let i = 0; i < nt * 3; i++) { const v = idx[i] * 3; for (let a = 0; a < 3; a++) pos[i * 3 + a] = mn[a] + q[v + a] * st[a]; }
+    return pos;
+  }
+  function b64ToBytes(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+  function bytesToB64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+  async function gzipBytes(u) {
+    if (typeof CompressionStream !== 'function') return u;
+    try { return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); } catch (e) { return u; }
+  }
+
+  /* Owner tools: make pictures and the 3D copy for rows in the Shop tab */
+  const shopRenderer = (function () {
+    let k;
+    return function () {
+      if (k !== undefined) return k;
+      k = null;
+      if (!HAS3) return k;
+      try {
+        const R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        if (!R.getContext()) return k;
+        R.setPixelRatio(1); R.setSize(640, 640, false); R.setClearColor(0xe9ecf0, 1);
+        const sc = new THREE.Scene(); addLights(sc);
+        k = { R, sc, cam: new THREE.PerspectiveCamera(30, 1, 0.5, 20000) };
+      } catch (e) { k = null; }
+      return k;
+    };
+  })();
+  async function shopPictures(geo, hex) {
+    const k = shopRenderer(); if (!k) throw Object.assign(new Error('no_3d'), { code: 'no_3d' });
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide }));
+    k.sc.add(mesh);
+    const sz = new THREE.Vector3(); geo.boundingBox.getSize(sz);
+    const d = (sz.length() / 2) / Math.sin(THREE.MathUtils.degToRad(15)) * 1.04, out = [];
+    for (const [yaw, pitch] of [[0.65, 0.42], [0, 0.12], [0.65 + Math.PI, 0.32]]) {
+      mesh.rotation.y = yaw;
+      k.cam.position.set(0, sz.y * 0.5 + d * Math.sin(pitch), d * Math.cos(pitch));
+      k.cam.near = d / 100; k.cam.far = d * 10; k.cam.lookAt(0, sz.y * 0.5, 0); k.cam.updateProjectionMatrix();
+      k.R.render(k.sc, k.cam);
+      const blob = await new Promise(res => k.R.domElement.toBlob(res, 'image/jpeg', 0.85));
+      out.push(bytesToB64(new Uint8Array(await blob.arrayBuffer())));
+    }
+    k.sc.remove(mesh); mesh.material.dispose();
+    return out;
+  }
+  async function readShopFile(it, onFrac) {
+    const parts = []; let off = 0;
+    for (;;) {
+      const d = await api('shopRead', { fileId: it.fileId, offset: off });
+      const b = b64ToBytes(d.data); parts.push(b); off += b.length;
+      onFrac(Math.min(1, off / (d.size || it.size || off || 1)));
+      if (d.done || !b.length) break;
+    }
+    const out = new Uint8Array(off); let p = 0;
+    parts.forEach(b => { out.set(b, p); p += b.length; });
+    return out.buffer;
+  }
+  async function makeShopAssets(buf, colourName) {
+    if (!HAS3) throw Object.assign(new Error('no_3d'), { code: 'no_3d' });
+    let geo = new THREE.BufferGeometry();
+    try { geo.setAttribute('position', new THREE.BufferAttribute(parseSTL(buf), 3)); }
+    catch (e) { throw Object.assign(new Error('not_stl'), { code: 'not an STL file' }); }
+    geo.rotateX(-Math.PI / 2);
+    const r = prepare(geo, true);
+    const pics = await shopPictures(r.geo, colourById(colourIdFor(colourName)).hex);
+    const preview = bytesToB64(await gzipBytes(encodePreview(r.geo.attributes.position.array)));
+    r.geo.dispose();
+    return { pics, preview, vol: r.vol, area: r.area, dims: r.dims, tris: r.tris };
+  }
+  function checkOwner() {
+    if (!LIVE || state.ownerChecked || state.isOwner === false || shop.admin || !tokenValid()) return;
+    state.ownerChecked = true; state.ownerChecking = true;
+    api('shopAdmin')
+      .then(d => { state.isOwner = true; shop.admin = d; })
+      .catch(e => { if (e.code === 'not_owner') state.isOwner = false; })
+      .finally(() => { state.ownerChecking = false; if (state.view === 'shop') renderOwnerPanel(); });
+  }
+  function renderOwnerPanel() {
+    const box = $('#shopOwner');
+    if (!LIVE || !state.user || !state.isOwner) { box.hidden = true; if (LIVE && state.user && state.isOwner === undefined && !state.ownerChecked && state.view === 'shop') checkOwner(); return; }
+    box.hidden = false;
+    const a = shop.admin;
+    let body;
+    if (shop.busy) body = `<p>${esc(shop.busyText)}</p><div class="up-bar big live"><i style="width:${shop.busyPct}%"></i></div><p class="help">Keep this page open until it finishes.</p>`;
+    else if (!a) body = '<p>Checking your Shop tab…</p>';
+    else {
+      const ready = a.items.filter(i => i.ready && !i.hide).length, hidden = a.items.filter(i => i.ready && i.hide).length;
+      const need = a.items.filter(i => i.need).length, bad = a.items.filter(i => i.error).length;
+      const parts = [`${ready} on the website`];
+      if (need) parts.push(`${need} ${need > 1 ? 'need' : 'needs'} pictures`);
+      if (hidden) parts.push(`${hidden} hidden`);
+      if (bad) parts.push(`${bad} with a problem (see the Status column)`);
+      body = a.items.length
+        ? `<p>${a.items.length} ${a.items.length > 1 ? 'models' : 'model'} in your Shop tab: ${parts.join(', ')}.</p>${need ? '<p class="help">Update shop reads each new or changed STL, makes its pictures and 3D copy, and saves them to your Drive.</p>' : ''}`
+        : '<p>Your Shop tab is empty. Add a row with a name and the Drive link of an STL file, then tap Update shop.</p>';
+    }
+    const need = a && a.items.some(i => i.need);
+    box.innerHTML = `<div class="shop-owner-head"><h3>Shop tools</h3><span class="badge muted">Only you see this</span></div>${body}
+      <div class="row-btns"><button type="button" class="btn ${need ? 'primary' : 'ghost'} sm" data-shop-update${shop.busy ? ' disabled' : ''}>${need ? 'Update shop' : 'Check again'}</button>${a && a.sheetUrl ? `<a class="btn text sm" href="${esc(a.sheetUrl)}" target="_blank" rel="noopener">Open the Shop tab</a>` : ''}</div>`;
+  }
+  async function updateShop() {
+    if (shop.busy) return;
+    shop.busy = true; shop.busyPct = 0; shop.busyText = 'Checking your Shop tab…'; renderOwnerPanel();
+    keepAwake(true);
+    let made = 0; const failed = [];
+    try {
+      shop.admin = await api('shopAdmin');
+      const todo = shop.admin.items.filter(i => i.need);
+      for (let n = 0; n < todo.length; n++) {
+        const it = todo[n];
+        const step = (f, text) => { shop.busyPct = Math.round((n + f) / todo.length * 100); shop.busyText = `${text} (${n + 1} of ${todo.length})`; renderOwnerPanel(); };
+        try {
+          step(0, `Reading ${it.name}`);
+          const buf = await readShopFile(it, f => step(f * 0.6, `Reading ${it.name}`));
+          step(0.6, `Making pictures of ${it.name}`);
+          await new Promise(r => setTimeout(r, 50));
+          const m = await makeShopAssets(buf, it.colour);
+          step(0.85, `Saving ${it.name}`);
+          await api('shopSave', Object.assign({ row: it.row, fileId: it.fileId }, m));
+          made++;
+        } catch (e) { failed.push(`${it.name} (${e.code || e.message || 'error'})`); }
+      }
+      shop.admin = await api('shopAdmin').catch(() => shop.admin);
+      if (failed.length) toast(`Couldn’t update ${failed.join(', ')}.`);
+      else if (made) toast(`Made pictures for ${made} ${made > 1 ? 'models' : 'model'}. They’re on the Shop now.`);
+      else toast('Everything in your Shop tab is up to date.');
+    } catch (e) {
+      toast(`Your Shop tab couldn’t be read (${e.code || 'error'}). Try again.`);
+    } finally {
+      shop.busy = false; keepAwake(false);
+      renderOwnerPanel();
+      if (made) loadShop();
+    }
+  }
+
   /* ---------- Modal ---------- */
   const DEFAULT_REASON = { login: LIVE ? 'Sign in with Google to check out and follow your orders.' : 'Log in to check out and see your orders.', signup: 'An account keeps your cart, addresses and orders together.' };
   function openModal(pane, reason) {
@@ -1717,9 +2086,9 @@ body:not(.live) .live-only{display:none!important}
     if (e.tooBig) { toast('Scale the model to fit the 256 mm plate first.'); return; }
     const o = Object.assign({}, state.opts);
     const item = {
-      id: uid('I'), name: m.name, source: m.source, sampleId: m.sampleId || null,
+      id: uid('I'), name: m.name, source: m.source, sampleId: m.sampleId || null, shopKey: m.shopKey || null,
       base: { vol: m.vol, area: m.area, dims: m.dims, leaky: !!m.leaky },
-      opts: o, thumb: renderThumb(m.geo, colourById(o.colour).hex, 160), added: Date.now()
+      opts: o, thumb: m.source === 'shop' ? (m.pics && m.pics[0] ? picUrl(m.pics[0], 200) : null) : renderThumb(m.geo, colourById(o.colour).hex, 160), added: Date.now()
     };
     const c = getCart(); c.push(item); setCart(c);
     if (LIVE && m.source === 'upload' && m.file) idb.put(item.id, m.file).catch(() => {});
@@ -1739,7 +2108,7 @@ body:not(.live) .live-only{display:none!important}
   function renderCart() {
     const box = $('#cartBody'), items = getCart();
     if (!items.length) {
-      box.innerHTML = `<div class="empty"><h3>Your cart is empty</h3><p>Price a model and tap Add to cart. You can add several models and pay for them together.</p><div class="row-btns"><a class="btn primary" href="#estimate">Get an estimate</a><a class="btn ghost" href="#models">Browse models</a></div></div>`;
+      box.innerHTML = `<div class="empty"><h3>Your cart is empty</h3><p>Price a model and tap Add to cart. You can add several models and pay for them together.</p><div class="row-btns"><a class="btn primary" href="#estimate">Get an estimate</a><a class="btn ghost" href="#shop">Browse the Shop</a></div></div>`;
       return;
     }
     const t = cartTotals(items, '');
@@ -1846,7 +2215,7 @@ body:not(.live) .live-only{display:none!important}
     const t = cartTotals(getCart(), state.co.address.pin);
     const order = {
       id: state.co.ref, created: Date.now(), utr, status: 'Payment being checked',
-      items: t.lines.map(({ it, pr }) => ({ name: it.name, qty: pr.qty, spec: specLine(it.opts, pr.dims), total: pr.total })),
+      items: t.lines.map(({ it, pr }) => ({ name: it.name, qty: pr.qty, spec: specLine(it.opts, pr.dims), total: pr.total, shopKey: it.shopKey || null })),
       subtotal: t.subtotal, setup: t.setup, topUp: t.topUp,
       shipping: t.ship ? { label: `${t.ship.count > 1 ? t.ship.count + ' boxes' : '1 box'} up to ${t.ship.box.cm.join(' × ')} cm`, amount: t.ship.boxAmount, remote: t.ship.remote } : null,
       total: t.total, address: state.co.address, arriveBy: t.arrive ? t.arrive.getTime() : null
@@ -1964,6 +2333,7 @@ body:not(.live) .live-only{display:none!important}
 
   /* ---------- Models gallery ---------- */
   function renderModels() {
+    if (LIVE) { renderShopGrid(); return; }
     const cats = ['All'].concat(Array.from(new Set(SAMPLES.map(s => s.cat))));
     $('#chips').innerHTML = cats.map(c => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === state.filter}">${c}</button>`).join('');
     if (!HAS3) { $('#modelGrid').innerHTML = '<p class="empty">Models couldn’t load because the 3D engine didn’t load. Refresh to try again.</p>'; return; }
@@ -2084,14 +2454,16 @@ body:not(.live) .live-only{display:none!important}
   }
 
   /* ---------- Routing ---------- */
-  const VIEWS = ['estimate', 'models', 'cart', 'checkout', 'orders'];
+  const VIEWS = ['estimate', 'shop', 'cart', 'checkout', 'orders'];
   function rerenderView() {
-    if (state.view === 'cart') renderCart();
+    if (state.view === 'shop') renderModels();
+    else if (state.view === 'cart') renderCart();
     else if (state.view === 'checkout') renderCheckout();
     else if (state.view === 'orders') renderOrders();
   }
   function route() {
     const h = location.hash.replace('#', '');
+    if (h === 'models') { location.replace('#shop'); return; }
     let v = VIEWS.indexOf(h) >= 0 ? h : 'estimate';
     if (v === 'checkout' && (!state.user || !getCart().length)) { location.hash = '#cart'; return; }
     const changed = v !== state.view;
@@ -2101,7 +2473,7 @@ body:not(.live) .live-only{display:none!important}
     const tab = v === 'checkout' ? 'cart' : v;
     $$('.tabs a').forEach(a => { if (a.dataset.view === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     document.body.classList.toggle('on-estimate', v === 'estimate');
-    viewer.setVisible(v === 'estimate');
+    setStage(stageView.mode);
     rerenderView();
     paintUploads();
     closeMenu();
@@ -2211,10 +2583,28 @@ body:not(.live) .live-only{display:none!important}
     // Gallery
     $('#chips').addEventListener('click', e => { const c = e.target.closest('[data-cat]'); if (!c) return; state.filter = c.dataset.cat; renderModels(); });
     $('#modelGrid').addEventListener('click', e => {
+      if (e.target.closest('[data-shop-retry]')) { shop.error = false; loadShop(); renderModels(); return; }
       const c = e.target.closest('.card'); if (!c) return;
       if (c.hasAttribute('data-upload')) { fileIn.click(); return; }
+      if (c.dataset.shop) { openShopItem(c.dataset.shop); return; }
       loadSample(c.dataset.sample); location.hash = '#estimate';
     });
+    $('#shopOwner').addEventListener('click', e => { if (e.target.closest('[data-shop-update]')) updateShop(); });
+    $('#stageMode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b || b.disabled) return; stageView.userPicked = true; setStage(b.dataset.mode); });
+    $('#gallery').addEventListener('click', e => {
+      const t = e.target.closest('[data-pic]');
+      if (t) stageView.idx = +t.dataset.pic;
+      else if (e.target.closest('.gallery-main') && stageView.pics.length > 1) stageView.idx = (stageView.idx + 1) % stageView.pics.length;
+      else return;
+      renderGallery();
+    });
+    // Shop pictures come from Google Drive; if one address fails, try Drive's other one.
+    document.addEventListener('error', e => {
+      const img = e.target;
+      if (!img || img.tagName !== 'IMG' || img.dataset.alt) return;
+      const m = /lh3\.googleusercontent\.com\/d\/([-\w]+)=w(\d+)/.exec(img.src || '');
+      if (m) { img.dataset.alt = '1'; img.src = picUrlAlt(m[1], m[2]); }
+    }, true);
 
     // Cart
     $('#cartBody').addEventListener('click', e => {
@@ -2289,7 +2679,8 @@ body:not(.live) .live-only{display:none!important}
 
     if (HAS3) {
       SAMPLES.forEach(s => { Object.assign(s, prepare(s.build(), !!s.flat)); s.from = priceItem(s, DEFAULT_OPTS).total; });
-      if (!viewer.init($('#viewport'))) {
+      glOk = viewer.init($('#viewport'));
+      if (!glOk) {
         $('#viewport').innerHTML = '<p class="nogl">3D preview isn’t available in this browser. Estimates still work.</p>';
         $('#hint').hidden = true; $('.zoom').hidden = true;
       }
