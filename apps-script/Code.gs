@@ -6,8 +6,12 @@
  * Deploy > New deployment > Web app, with "Execute as: Me" and
  * "Who has access: Anyone".
  *
- * For every new order, the script also emails the owner (the account the
- * script runs as) with the order's details.
+ * For every new order, the script also emails NOTIFY_EMAIL (or, if that is
+ * empty, the account the script runs as) with the order's details.
+ *
+ * After changing this file, publish it with Deploy > Manage deployments >
+ * pencil icon > Version: New version > Deploy. That keeps the same web app
+ * URL, so the website doesn't need changing.
  *
  * Every request must carry a Google sign-in token issued for
  * GOOGLE_CLIENT_ID. The script checks it with Google and uses the
@@ -28,6 +32,15 @@ const SHEET_ID = '1uoIu0P7Pr9cnLUezvWIyA_z7Tu9Ad-rkXWi9Zyeyex8';
 const STL_FOLDER_ID = '1ieWRQSamuGr_ICGRYGqwhFQ2A__bsJ17';
 const MAX_FILE_BYTES = 100 * 1024 * 1024;   // 100 MB
 const CHUNK_BYTES = 8 * 1024 * 1024;        // files arrive in 8 MB pieces
+
+// The website's address. Customers' browsers send model files straight to
+// Drive from this site, using an upload link this script creates.
+const SITE_ORIGIN = 'https://sainikunal90.github.io';
+
+// Where new-order emails go. Leave empty to use the account this script runs
+// as. Gmail doesn't notify you about mail you send to yourself, so put a
+// different address here if you want a phone notification.
+const NOTIFY_EMAIL = '';
 
 const USERS = 'Users';
 const ORDERS = 'Orders';
@@ -50,14 +63,15 @@ function doPost(e) {
   try {
     const user = verifyGoogleToken_(body.idToken);
     if (!user) return json_({ ok: false, error: 'not_signed_in' });
-    // File pieces are limited by the file's size instead, so they skip this count.
-    if (body.action !== 'fileChunk' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
+    // File pieces and upload checks are limited by the file's size instead, so they skip this count.
+    if (body.action !== 'fileChunk' && body.action !== 'fileStatus' && !withinRateLimit_(user.email)) return json_({ ok: false, error: 'too_many_requests' });
 
     if (body.action === 'signin') return json_(locked_(function () { return upsertUser_(user, null); }));
     if (body.action === 'order') return json_(locked_(function () { return addOrder_(user, body.order); }));
     if (body.action === 'orders') return json_(listOrders_(user));
     if (body.action === 'fileStart') return json_(fileStart_(user, body));
     if (body.action === 'fileChunk') return json_(fileChunk_(user, body));
+    if (body.action === 'fileStatus') return json_(fileStatus_(user, body));
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
     console.error(err);
@@ -84,6 +98,15 @@ function locked_(fn) {
 
 function verifyGoogleToken_(token) {
   if (!token || typeof token !== 'string' || token.length > 4096) return null;
+  // A token Google has already confirmed is remembered for a few minutes, so a
+  // file sent in many pieces isn't slowed down by a check on every piece.
+  const cache = CacheService.getScriptCache();
+  const key = 'tok:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
+  const hit = cache.get(key);
+  if (hit) {
+    const u = JSON.parse(hit);
+    if (u.exp * 1000 > Date.now()) return { id: u.id, email: u.email, name: u.name };
+  }
   const res = UrlFetchApp.fetch(
     'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token),
     { muteHttpExceptions: true }
@@ -94,7 +117,10 @@ function verifyGoogleToken_(token) {
   if (p.iss !== 'accounts.google.com' && p.iss !== 'https://accounts.google.com') return null;
   if (String(p.email_verified) !== 'true') return null;
   if (Number(p.exp) * 1000 < Date.now()) return null;
-  return { id: String(p.sub), email: String(p.email).toLowerCase(), name: clean_(p.name || '', 120) };
+  const user = { id: String(p.sub), email: String(p.email).toLowerCase(), name: clean_(p.name || '', 120) };
+  const ttl = Math.min(600, Math.floor(Number(p.exp) - Date.now() / 1000));
+  if (ttl > 30) cache.put(key, JSON.stringify({ id: user.id, email: user.email, name: user.name, exp: Number(p.exp) }), ttl);
+  return user;
 }
 
 function withinRateLimit_(email) {
@@ -186,7 +212,7 @@ function addOrder_(user, o) {
 // stops the order from being saved.
 function notifyOwner_(o) {
   try {
-    const to = Session.getEffectiveUser().getEmail();
+    const to = NOTIFY_EMAIL || Session.getEffectiveUser().getEmail();
     if (!to) return;
     const total = o.amounts.reduce(function (t, n) { return t + n; }, 0);
     const labels = ['Items', 'Setup fee', 'Minimum order top-up', 'Shipping', 'Remote area'];
@@ -299,35 +325,121 @@ function fileStart_(user, body) {
   const name = body.orderId + (order.items > 1 ? '-' + (index + 1) : '') + '.stl';
   DriveApp.getFolderById(STL_FOLDER_ID); // also gives this script permission to use Drive
 
-  const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
-    method: 'post',
-    contentType: 'application/json; charset=UTF-8',
-    headers: {
-      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
-      'X-Upload-Content-Type': 'application/octet-stream',
-      'X-Upload-Content-Length': String(size)
-    },
-    payload: JSON.stringify({ name: name, parents: [STL_FOLDER_ID], description: 'Extrudo order ' + body.orderId + ', model ' + (index + 1) }),
-    muteHttpExceptions: true
-  });
-  const uri = res.getHeaders()['Location'] || res.getHeaders()['location'];
+  const meta = { name: name, parents: [STL_FOLDER_ID], description: 'Extrudo order ' + body.orderId + ', model ' + (index + 1) };
+  // The upload link is made for the website's address, so the customer's
+  // browser can send the file to Drive itself. If Drive won't make one, the
+  // file comes through this script instead.
+  let direct = true, res = null;
+  try { res = startDriveUpload_(meta, size, SITE_ORIGIN); } catch (err) { res = null; }
+  if (!res || res.getResponseCode() !== 200 || !locationOf_(res)) {
+    direct = false;
+    res = startDriveUpload_(meta, size, '');
+  }
+  const uri = locationOf_(res);
   if (res.getResponseCode() !== 200 || !uri) return driveFailure_('Drive upload start', res);
 
   CacheService.getScriptCache().put(uploadKey_(body.orderId, index), JSON.stringify({ uri: uri, size: size, name: name, email: user.email }), 21600);
-  return { ok: true, chunkSize: CHUNK_BYTES, name: name };
+  return { ok: true, chunkSize: CHUNK_BYTES, name: name, gzip: true, uploadUrl: direct ? uri : '' };
 }
 
-// Receives one 8 MB piece of a file and passes it on to Drive.
-function fileChunk_(user, body) {
+function startDriveUpload_(meta, size, origin) {
+  const headers = {
+    Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+    'X-Upload-Content-Type': 'application/octet-stream',
+    'X-Upload-Content-Length': String(size)
+  };
+  if (origin) headers.Origin = origin;
+  return UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
+    method: 'post',
+    contentType: 'application/json; charset=UTF-8',
+    headers: headers,
+    payload: JSON.stringify(meta),
+    muteHttpExceptions: true
+  });
+}
+
+function locationOf_(res) {
+  const h = res.getHeaders();
+  return h['Location'] || h['location'] || '';
+}
+
+// The upload this customer started for one file, or an error to send back.
+function savedUpload_(user, body) {
   const index = Math.floor(Number(body.index));
   const key = uploadKey_(body.orderId, index);
   const saved = CacheService.getScriptCache().get(key);
-  if (!saved) return { ok: false, error: 'upload_expired' };
+  if (!saved) return { error: { ok: false, error: 'upload_expired' } };
   const up = JSON.parse(saved);
-  if (up.email !== user.email) return { ok: false, error: 'order_not_found' };
+  if (up.email !== user.email) return { error: { ok: false, error: 'order_not_found' } };
+  return { key: key, up: up };
+}
+
+// How many bytes Drive holds, from the Range header of a 308 answer.
+function receivedOf_(res) {
+  const h = res.getHeaders();
+  const m = /bytes=0-(\d+)/.exec(h['Range'] || h['range'] || '');
+  return m ? Number(m[1]) + 1 : 0;
+}
+
+// Asks Drive how much of a file has arrived. When it's all there, links the
+// file in the order's row. The website calls this after sending a file to
+// Drive itself, and to carry on after an interruption.
+function fileStatus_(user, body) {
+  const s = savedUpload_(user, body);
+  if (s.error) return s.error;
+  if (s.up.linked) return { ok: true, done: true, name: s.up.name };
+  const res = UrlFetchApp.fetch(s.up.uri, {
+    method: 'put',
+    headers: { 'Content-Range': 'bytes */' + s.up.size },
+    muteHttpExceptions: true
+  });
+  const code = res.getResponseCode();
+  if (code === 308) return { ok: true, done: false, received: receivedOf_(res) };
+  if (code === 200 || code === 201) return finishUpload_(user, body, s, res);
+  return driveFailure_('Drive upload check', res);
+}
+
+// Adds the finished file to the order's "Model files" cell, once.
+function finishUpload_(user, body, s, res) {
+  let id = '';
+  try { id = JSON.parse(res.getContentText()).id || ''; } catch (err) { id = ''; }
+  if (!id) {
+    const files = DriveApp.getFolderById(STL_FOLDER_ID).getFilesByName(s.up.name);
+    let newest = null;
+    while (files.hasNext()) {
+      const f = files.next();
+      if (!newest || f.getDateCreated() > newest.getDateCreated()) newest = f;
+    }
+    if (!newest) return { ok: false, error: 'upload_failed', detail: 'Drive finished the upload but the file wasn’t found.' };
+    id = newest.getId();
+  }
+  locked_(function () {
+    const order = findOwnOrder_(user, body.orderId);
+    if (order) addFileLink_(order.sheet, order.row, s.up.name, 'https://drive.google.com/file/d/' + id + '/view');
+  });
+  s.up.linked = true;
+  CacheService.getScriptCache().put(s.key, JSON.stringify(s.up), 21600);
+  return { ok: true, done: true, name: s.up.name };
+}
+
+// Receives one 8 MB piece of a file (compressed by the browser when it can)
+// and passes it on to Drive. Used when the browser can't reach Drive itself.
+function fileChunk_(user, body) {
+  const s = savedUpload_(user, body);
+  if (s.error) return s.error;
+  const up = s.up;
+  if (up.linked) return { ok: true, done: true, name: up.name };
 
   const offset = Math.floor(Number(body.offset));
-  const bytes = Utilities.base64Decode(String(body.data || ''));
+  let bytes = Utilities.base64Decode(String(body.data || ''));
+  if (body.gz) {
+    try {
+      bytes = Utilities.ungzip(Utilities.newBlob(bytes, 'application/x-gzip')).getBytes();
+    } catch (err) {
+      return { ok: false, error: 'gzip_failed' };
+    }
+    if (bytes.length !== Math.floor(Number(body.rawSize))) return { ok: false, error: 'gzip_failed' };
+  }
   const end = offset + bytes.length;
   if (!(offset >= 0) || !bytes.length || end > up.size) return { ok: false, error: 'bad_file' };
   if (end < up.size && bytes.length % (256 * 1024) !== 0) return { ok: false, error: 'bad_file' };
@@ -340,20 +452,9 @@ function fileChunk_(user, body) {
     muteHttpExceptions: true
   });
   const code = res.getResponseCode();
-  if (code === 308) {
-    const range = res.getHeaders()['Range'] || res.getHeaders()['range'] || '';
-    const m = /bytes=0-(\d+)/.exec(range);
-    return { ok: true, done: false, received: m ? Number(m[1]) + 1 : end };
-  }
+  if (code === 308) return { ok: true, done: false, received: receivedOf_(res) || end };
   if (code !== 200 && code !== 201) return driveFailure_('Drive upload piece', res);
-
-  const file = JSON.parse(res.getContentText());
-  CacheService.getScriptCache().remove(key);
-  locked_(function () {
-    const order = findOwnOrder_(user, body.orderId);
-    if (order) addFileLink_(order.sheet, order.row, up.name, 'https://drive.google.com/file/d/' + file.id + '/view');
-  });
-  return { ok: true, done: true, name: up.name };
+  return finishUpload_(user, body, s, res);
 }
 
 // Logs Drive's answer (see Executions in Apps Script) and passes a short reason back.
@@ -370,17 +471,21 @@ function uploadKey_(orderId, index) {
 }
 
 // Adds a linked file name on a new line in the order's "Model files" cell.
+// If the name is already there (a file sent again), its link is updated instead.
 function addFileLink_(sh, row, name, url) {
   const cell = sh.getRange(row, FILES_COLUMN);
   const old = cell.getRichTextValue();
   const oldText = old ? old.getText() : '';
-  const text = oldText ? oldText + '\n' + name : name;
+  const lines = oldText ? oldText.split('\n') : [];
+  const at = lines.indexOf(name);
+  const text = at >= 0 ? oldText : (oldText ? oldText + '\n' + name : name);
+  const start = at >= 0 ? lines.slice(0, at).join('\n').length + (at ? 1 : 0) : text.length - name.length;
   const b = SpreadsheetApp.newRichTextValue().setText(text);
   if (old) old.getRuns().forEach(function (r) {
     const u = r.getLinkUrl();
     if (u) b.setLinkUrl(r.getStartIndex(), r.getEndIndex(), u);
   });
-  b.setLinkUrl(text.length - name.length, text.length, url);
+  b.setLinkUrl(start, start + name.length, url);
   cell.setRichTextValue(b.build());
 }
 
@@ -408,45 +513,53 @@ function testDriveUpload() {
   const size = 300 * 1024;
   const bytes = [];
   for (let i = 0; i < size; i++) bytes.push((i % 200) - 100);
+  const meta = { name: 'EXTEST-upload-check.stl', parents: [STL_FOLDER_ID] };
 
-  const start = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name', {
-    method: 'post',
-    contentType: 'application/json; charset=UTF-8',
-    headers: {
-      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
-      'X-Upload-Content-Type': 'application/octet-stream',
-      'X-Upload-Content-Length': String(size)
-    },
-    payload: JSON.stringify({ name: 'EXTEST-upload-check.stl', parents: [STL_FOLDER_ID] }),
-    muteHttpExceptions: true
-  });
-  const uri = start.getHeaders()['Location'] || start.getHeaders()['location'];
+  let start = null, direct = true;
+  try { start = startDriveUpload_(meta, size, SITE_ORIGIN); } catch (err) { start = null; }
+  if (!start || start.getResponseCode() !== 200 || !locationOf_(start)) {
+    direct = false;
+    start = startDriveUpload_(meta, size, '');
+  }
+  const uri = locationOf_(start);
   if (!step('2. Start a Drive upload', start.getResponseCode() === 200 && !!uri,
-    start.getResponseCode() + ' ' + start.getContentText().slice(0, 300))) return;
+    (direct ? 'link for the website, ' : 'through this script only, ') + start.getResponseCode() + ' ' + start.getContentText().slice(0, 300))) return;
 
+  // The browser compresses pieces; this checks the script can open them.
+  const piece = Utilities.ungzip(Utilities.gzip(Utilities.newBlob(bytes.slice(0, 262144)))).getBytes();
   const first = UrlFetchApp.fetch(uri, {
     method: 'put', contentType: 'application/octet-stream',
     headers: { 'Content-Range': 'bytes 0-262143/' + size },
-    payload: bytes.slice(0, 262144), muteHttpExceptions: true
+    payload: piece, muteHttpExceptions: true
   });
-  if (!step('3. Send the first piece', first.getResponseCode() === 308,
+  if (!step('3. Send the first piece (compressed and opened again)', first.getResponseCode() === 308 && piece.length === 262144,
     first.getResponseCode() + ' ' + first.getContentText().slice(0, 300))) return;
+
+  const check = UrlFetchApp.fetch(uri, { method: 'put', headers: { 'Content-Range': 'bytes */' + size }, muteHttpExceptions: true });
+  if (!step('4. Ask Drive how much arrived', check.getResponseCode() === 308 && receivedOf_(check) === 262144,
+    check.getResponseCode() + ', ' + receivedOf_(check) + ' bytes')) return;
 
   const last = UrlFetchApp.fetch(uri, {
     method: 'put', contentType: 'application/octet-stream',
     headers: { 'Content-Range': 'bytes 262144-' + (size - 1) + '/' + size },
     payload: bytes.slice(262144), muteHttpExceptions: true
   });
-  if (!step('4. Send the last piece', last.getResponseCode() === 200 || last.getResponseCode() === 201,
+  if (!step('5. Send the last piece', last.getResponseCode() === 200 || last.getResponseCode() === 201,
     last.getResponseCode() + ' ' + last.getContentText().slice(0, 300))) return;
 
+  const done = UrlFetchApp.fetch(uri, { method: 'put', headers: { 'Content-Range': 'bytes */' + size }, muteHttpExceptions: true });
+  let id = '';
+  try { id = JSON.parse(done.getContentText()).id || ''; } catch (err) { id = ''; }
+  step('6. Ask Drive again once it is finished', done.getResponseCode() === 200 || done.getResponseCode() === 201,
+    done.getResponseCode() + (id ? ', file found' : ', no file id (the script will look it up by name)'));
+
   const file = JSON.parse(last.getContentText());
-  step('5. File saved in STL files', true, file.name);
+  step('7. File saved in STL files', true, file.name);
   try {
     DriveApp.getFileById(file.id).setTrashed(true);
-    step('6. Test file moved to the bin', true);
+    step('8. Test file moved to the bin', true);
   } catch (err) {
-    step('6. Move the test file to the bin', false, String(err));
+    step('8. Move the test file to the bin', false, String(err));
   }
   console.log('Uploads to Drive work. If the website still says "Didn\'t upload", the website is calling an older version of this script.');
 }
